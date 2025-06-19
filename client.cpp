@@ -7,6 +7,8 @@
 #include<thread>
 using namespace std;
 
+#define INTERCEPTOR_PORT 8080
+
 void recvmsg_client(int clientSocket) {
   char buffer[1024] = {0};
   while(clientSocket) {
@@ -18,13 +20,21 @@ void recvmsg_client(int clientSocket) {
 }
 
 void sendmsg_client(int clientSocket) {
-  char message[1024] = {0};
+  string message;
+  //char message[1024] = {0};
   while(clientSocket) {
-    memset(message, 0, sizeof(message));
+    //memset(message, 0, sizeof(message));
     cout << "send: ";
+<<<<<<< HEAD
     //scanf("%[^\n]s", message);
     cin >> message;
     send(clientSocket, message, strlen(message), 0);
+=======
+    getline(cin,message);
+    //cin>>message;
+    //scanf("%[^\n]s", message);
+    send(clientSocket, message.c_str(), strlen(message.c_str()), 0);
+>>>>>>> ffc3b552bb91595497c5e62b811db6d2a13b3cf1
   }
   return;
 }
@@ -39,7 +49,7 @@ int main()
     sockaddr_in serverAddress;
 
     serverAddress.sin_family=AF_INET;
-    serverAddress.sin_port=htons(8080);
+    serverAddress.sin_port=htons(INTERCEPTOR_PORT);
 
     inet_pton(AF_INET, addr_str.c_str(), &serverAddress.sin_addr);
 
@@ -49,11 +59,13 @@ int main()
       thread t_send(sendmsg_client, clientSocket);
       thread t_recv(recvmsg_client, clientSocket); 
 
-      t_send.join();
+      t_send.detach();
       t_recv.join();
+      close(clientSocket);
+      cout<<"closing...";
    }
+   else cout<<"Error connecting...\n";
 
-    close(clientSocket);
-    cout<<"closing...";
+    
     return 0;
 }
