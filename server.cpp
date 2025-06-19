@@ -5,6 +5,8 @@
 #include<bits/stdc++.h>
 #include<thread>
 
+#define SERVER_PORT 6969
+
 using namespace std;
 
 void sockthread(int clientSocket)
@@ -21,12 +23,15 @@ void sockthread(int clientSocket)
 
 void sendmsghehe(int clientSocket)
 {
-    char message[1024];
+    string message;
+    //char message[1024];
     while(clientSocket)
     {
         cout << "send: ";
-        scanf("%[^\n]s", message);
-        send(clientSocket,message,strlen(message),0);
+        getline(cin,message);
+        //cin>>message;
+        //scanf("%[^\n]s", message);
+        send(clientSocket,message.c_str(),strlen(message.c_str()),0);
     }
     return;
 }
@@ -37,16 +42,18 @@ int main()
 
     sockaddr_in serverAddress;
     serverAddress.sin_family=AF_INET;
-    serverAddress.sin_port=htons(6969);
+    serverAddress.sin_port=htons(SERVER_PORT);
     serverAddress.sin_addr.s_addr=INADDR_ANY;
 
     bind(serverSocket,(struct sockaddr*)&serverAddress,sizeof(serverAddress));
 
     listen(serverSocket,5);
+    cout<<"\nServer is listening on port "<<SERVER_PORT<<endl;
     while(serverSocket)
 
     {
         int clientSocket=accept(serverSocket,nullptr,nullptr);
+        cout<<"\nConnected to the interceptor!\n";
         thread t(sockthread,clientSocket);
         t.detach();
         thread t2(sendmsghehe,clientSocket); 
