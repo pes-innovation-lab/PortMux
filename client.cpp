@@ -22,7 +22,8 @@ void sendmsg_client(int clientSocket) {
   while(clientSocket) {
     memset(message, 0, sizeof(message));
     cout << "send: ";
-    scanf("%[^\n]s", message);
+    //scanf("%[^\n]s", message);
+    cin >> message;
     send(clientSocket, message, strlen(message), 0);
   }
   return;

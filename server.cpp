@@ -25,7 +25,8 @@ void sendmsghehe(int clientSocket)
     while(clientSocket)
     {
         cout << "send: ";
-        scanf("%[^\n]s", message);
+        //scanf("%[^\n]s", message);
+        cin >> message;
         send(clientSocket,message,strlen(message),0);
     }
     return;
