@@ -26,14 +26,20 @@ void sendmsg_client(int clientSocket) {
     //memset(message, 0, sizeof(message));
     cout << "send: ";
 <<<<<<< HEAD
+<<<<<<< HEAD
     //scanf("%[^\n]s", message);
     cin >> message;
     send(clientSocket, message, strlen(message), 0);
 =======
+=======
+>>>>>>> ffc3b552bb91595497c5e62b811db6d2a13b3cf1
     getline(cin,message);
     //cin>>message;
     //scanf("%[^\n]s", message);
     send(clientSocket, message.c_str(), strlen(message.c_str()), 0);
+<<<<<<< HEAD
+>>>>>>> ffc3b552bb91595497c5e62b811db6d2a13b3cf1
+=======
 >>>>>>> ffc3b552bb91595497c5e62b811db6d2a13b3cf1
   }
   return;
