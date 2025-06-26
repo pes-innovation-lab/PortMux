@@ -201,14 +201,14 @@ int main()
                 }
             }
 
-            else
+            else//client sending message
             {
                 // Connection is already setup.
 
-                bool isFirstMessage = (fd_to_service.find(events[i].data.fd) == fd_to_service.end());
+                bool isFirstMessage = (fd_to_service.find(events[i].data.fd) == fd_to_service.end());//ie map is empty
 
-                // See if anything was sent from the client.
                 memset(read_buffer, 0, sizeof(read_buffer));
+                // See if anything was sent from the client.
                 bytes_read = recv(events[i].data.fd, read_buffer, sizeof(read_buffer) - 1, 0);
                 read_buffer[bytes_read] = '\0';
                 if (bytes_read <= 0)
@@ -296,7 +296,7 @@ void parseRequest(string req_str, int fd, bool isFirstMessage)
         // Remove any trailing whitespace or newline characters
         while (!service.empty() && (service.back() == '\n' || service.back() == '\r' || service.back() == ' '))
         {
-            service.pop_back();
+            service.pop_back();//removing extra char at the end
         }
         while (!message.empty() && (message.back() == '\n' || message.back() == '\r' || message.back() == ' '))
         {
@@ -321,7 +321,7 @@ void parseRequest(string req_str, int fd, bool isFirstMessage)
         service = fd_to_service[fd];
     }
 
-    for (const auto &pair : service_mapping)
+    for (const auto &pair : service_mapping)//just logging
     {
         cout << "  '" << pair.first << "' -> " << pair.second << endl;
     }
