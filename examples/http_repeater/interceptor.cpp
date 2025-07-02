@@ -52,8 +52,11 @@ int main()
 
             if (events_arr[i].events & EPOLLOUT)
             {
-                cout << "Socket Number: " << events_arr[i].data.fd << " is ready to receive data!" << endl;
+                cout << "Socket Number: " << events_arr[i].data.fd << " is ready to send data!" << endl;
+                handle_pending_writes(events_arr[i].data.fd, epoll_fd);
+                continue;
             }
+
             int connection_socket;
             if (events_arr[i].data.fd == interceptor_socket)
             {
@@ -75,35 +78,36 @@ int main()
                 int service_fd = events_arr[i].data.fd;
                 int client_fd = service_to_client_map[service_fd];
 
+                // Read as much data as possible in edge-triggered mode
                 char service_buffer[READ_SIZE + 1] = {0};
-                ssize_t service_bytes = recv(service_fd, service_buffer, sizeof(service_buffer) - 1, 0);
-                cout << "Received bytes: " << service_bytes << endl;
+                ssize_t service_bytes;
+                
+                while ((service_bytes = recv(service_fd, service_buffer, sizeof(service_buffer) - 1, 0)) > 0)
+                {
+                    cout << "[+] Received " << service_bytes << " bytes from service FD: " << service_fd << endl;
+                    
+                    // Handling partial send/block
+                    if (!send_data_with_buffering(client_fd, service_buffer, service_bytes, epoll_fd))
+                    {
+                        cout << "[-] Failed to queue data for client" << endl;
+                        handle_disconnect(client_fd, epoll_fd);
+                        break;
+                    }
+                    
+                    memset(service_buffer, 0, sizeof(service_buffer));
+                }
+                
                 if (service_bytes == 0)
                 {
-                    // handle service disconnect, if necessary
                     cout << "[!] Service disconnected (FD: " << service_fd << ")" << endl;
-                    handle_disconnect(client_fd, epoll_fd);
+                    handle_disconnect(service_fd, epoll_fd);
                     continue;
                 }
-                else {
-                    if(errno == EWOULDBLOCK || errno == EAGAIN){
-                        continue;
-                    }
-                }
-
-                ssize_t sent = send(client_fd, service_buffer, service_bytes, 0);
-                if (sent <= service_bytes)
+                else if (service_bytes < 0 && errno != EWOULDBLOCK && errno != EAGAIN)
                 {
-                        cout << "Client buffer is full! " << endl;
-                        set_epollout(events_arr[i].data.fd, epoll_fd);
-                    
-                    /*
-                    else
-                    {
-                        cout << "[-] Failed to send response to client! " << endl;
-                        handle_disconnect(client_fd, epoll_fd);
-                    }
-                        */
+                    cout << "[!] Error reading from service: " << strerror(errno) << endl;
+                    handle_disconnect(service_fd, epoll_fd);
+                    continue;
                 }
             }
             else if (client_to_service_map.find(events_arr[i].data.fd) != client_to_service_map.end())
@@ -111,18 +115,36 @@ int main()
                 int client_fd = events_arr[i].data.fd;
                 int service_fd = client_to_service_map[client_fd];
 
+                // Read as much data as possible in edge-triggered mode
                 char client_buffer[READ_SIZE + 1] = {0};
-                ssize_t client_bytes = recv(client_fd, client_buffer, sizeof(client_buffer) - 1, 0);
-
-                if (client_bytes <= 0)
+                ssize_t client_bytes;
+                
+                while ((client_bytes = recv(client_fd, client_buffer, sizeof(client_buffer) - 1, 0)) > 0)
                 {
-                    // handle client disconnect, if necessary
-                    cout << "[!] client disconnected (FD: " << client_fd << ")" << endl;
-                    handle_disconnect(service_fd, epoll_fd);
+                    cout << "[+] Received " << client_bytes << " bytes from client FD: " << client_fd << endl;
+                    
+                    if (!send_data_with_buffering(service_fd, client_buffer, client_bytes, epoll_fd))
+                    {
+                        cout << "[-] Failed to queue data for service" << endl;
+                        handle_disconnect(client_fd, epoll_fd);
+                        break;
+                    }
+                    
+                    memset(client_buffer, 0, sizeof(client_buffer));
+                }
+                
+                if (client_bytes == 0)
+                {
+                    cout << "[!] Client disconnected (FD: " << client_fd << ")" << endl;
+                    handle_disconnect(client_fd, epoll_fd);
                     continue;
                 }
-
-                ssize_t sent = send(service_fd, client_buffer, client_bytes, 0);
+                else if (client_bytes < 0 && errno != EWOULDBLOCK && errno != EAGAIN)
+                {
+                    cout << "[!] Error reading from client: " << strerror(errno) << endl;
+                    handle_disconnect(client_fd, epoll_fd);
+                    continue;
+                }
             }
         }
     }

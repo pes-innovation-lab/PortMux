@@ -11,6 +11,7 @@
 #include<arpa/inet.h>
 #include<fcntl.h>
 #include<vector>
+#include <queue>
 
 #ifndef HEADERS_HPP
 #define HEADERS_HPP
@@ -18,17 +19,30 @@
 #define HTTP_PORT 6970
 #define INTERCEPTOR_PORT 8080
 #define MAX_EVENTS 500
-#define READ_SIZE 4096
+#define READ_SIZE 65536
 
 using namespace std;
+struct PendingData {
+    vector<char> buffer;
+    size_t offset;
+    int target_fd;
+    
+    PendingData(const char* data, size_t size, int fd) 
+        : buffer(data, data + size), offset(0), target_fd(fd) {}
+};
 
 extern unordered_map<int, int> service_to_client_map;
 extern unordered_map<int, int> client_to_service_map;
+extern std::unordered_map<int, std::queue<PendingData>> pending_writes;
 
-void convert_to_non_blocking(int socket_fd);
-void add_to_epoll(int socket_fd, int epoll_fd, struct epoll_event ep_init);
-void handle_disconnect(int socket_fd, int epoll_fd);
+void convert_to_non_blocking(int socketfd);
+void add_to_epoll(int socketfd, int epoll_fd, struct epoll_event epinitializer);
+void handle_disconnect(int fd, int epoll_fd);
 void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitializer);
-void set_epollout(int fd, int epoll);
+void set_epollout(int fd, int epoll_fd);
+void clear_epollout(int fd, int epoll_fd);
+bool send_data_with_buffering(int fd, const char* data, size_t data_size, int epoll_fd);
+void handle_pending_writes(int fd, int epoll_fd);
+
 
 #endif
