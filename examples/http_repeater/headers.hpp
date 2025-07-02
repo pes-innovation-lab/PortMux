@@ -29,5 +29,6 @@ void convert_to_non_blocking(int socket_fd);
 void add_to_epoll(int socket_fd, int epoll_fd, struct epoll_event ep_init);
 void handle_disconnect(int socket_fd, int epoll_fd);
 void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitializer);
+void set_epollout(int fd, int epoll);
 
 #endif

@@ -15,7 +15,7 @@ void convert_to_non_blocking(int socketfd)
 
 void add_to_epoll(int socketfd, int epoll_fd, struct epoll_event epinitializer)
 {
-    epinitializer.events = EPOLLIN | EPOLLHUP | EPOLLRDHUP;
+    epinitializer.events = EPOLLIN | EPOLLHUP | EPOLLRDHUP | EPOLLET;
     epinitializer.data.fd = socketfd;
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, socketfd, &epinitializer) < 0)
     {
@@ -86,4 +86,13 @@ void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitia
     add_to_epoll(service_fd, epoll_fd, epinitializer);
 
     return;
+}
+
+void set_epollout(int fd, int epoll_fd) {
+    struct epoll_event ev;
+    ev.data.fd = fd;
+    ev.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLHUP;  // 👈 Enable write readiness
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0) {
+        perror("epoll_ctl MOD (set EPOLLOUT)");
+    }
 }
