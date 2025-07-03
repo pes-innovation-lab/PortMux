@@ -73,7 +73,7 @@ void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitia
 
     sockaddr_in service_addr;
     service_addr.sin_family = AF_INET;
-    service_addr.sin_port = htons(HTTP_PORT);
+    service_addr.sin_port = htons(SSH_PORT);
     service_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     if (connect(service_fd, (sockaddr *)&service_addr, sizeof(service_addr)) < 0)

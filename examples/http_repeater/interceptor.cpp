@@ -65,7 +65,7 @@ int main()
 
         connect_to_service(connection_socket, epoll_fd, epinitializer);
       }
-      else if (service_to_client_map.find(events_arr[i].data.fd) != service_to_client_map.end())
+      else if (service_to_client_map.find(events_arr[i].data.fd) != service_to_client_map.end())// message from service
       {
         int service_fd = events_arr[i].data.fd;
         int client_fd = service_to_client_map[service_fd];
@@ -80,15 +80,15 @@ int main()
           handle_disconnect(client_fd, epoll_fd);
           continue;
         }
-
-        ssize_t sent = send(client_fd, service_buffer, strlen(service_buffer), 0);
+        cout<<"message from service:"<<service_buffer<<endl;
+        ssize_t sent = send(client_fd, service_buffer, service_bytes, 0);
         if (sent <= 0)
         {
           cout << "[-] Failed to send response to client! " << endl;
           handle_disconnect(client_fd, epoll_fd);
         }
       }
-      else if (client_to_service_map.find(events_arr[i].data.fd) != client_to_service_map.end())
+      else if (client_to_service_map.find(events_arr[i].data.fd) != client_to_service_map.end())// message from client
       {
         int client_fd = events_arr[i].data.fd;
         int service_fd = client_to_service_map[client_fd];
@@ -103,8 +103,13 @@ int main()
           handle_disconnect(service_fd, epoll_fd);
           continue;
         }
-
-        ssize_t sent = send(service_fd, client_buffer, strlen(client_buffer), 0);
+        cout<<"message from client:"<<client_buffer<<"and client bytes="<<client_bytes<<endl;
+        ssize_t sent = send(service_fd, client_buffer, client_bytes, 0);
+        if (sent <= 0)
+        {
+          cout << "[-] Failed to send request to service!" << endl;
+          handle_disconnect(service_fd, epoll_fd);
+        }
       }
     }
   }

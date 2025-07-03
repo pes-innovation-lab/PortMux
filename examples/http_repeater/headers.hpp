@@ -15,7 +15,7 @@
 #ifndef HEADERS_HPP
 #define HEADERS_HPP
 
-#define HTTP_PORT 6970
+#define SSH_PORT 22
 #define INTERCEPTOR_PORT 8080
 #define MAX_EVENTS 500
 #define READ_SIZE 4096
