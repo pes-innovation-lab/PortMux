@@ -74,6 +74,13 @@ void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitia
         return;
     }
 
+    int enable =1;
+    if (setsockopt(service_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+        perror("setsockopt(SO_REUSEADDR) failed");
+        close(service_fd);
+        exit(EXIT_FAILURE);
+    }
+
     sockaddr_in service_addr;
     service_addr.sin_family = AF_INET;
     service_addr.sin_port = htons(HTTP_PORT);
@@ -93,12 +100,13 @@ void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitia
     add_to_epoll(service_fd, epoll_fd, epinitializer);
 }
 
-void set_epollout(int fd, int epoll_fd) 
+void set_epollout(int fd, int epoll_fd)
 {
     struct epoll_event ev;
     ev.data.fd = fd;
     ev.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLET;
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0) {
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0)
+    {
         perror("epoll_ctl MOD (set EPOLLOUT)");
     }
 }
@@ -108,12 +116,13 @@ void clear_epollout(int fd, int epoll_fd)
     struct epoll_event ev;
     ev.data.fd = fd;
     ev.events = EPOLLIN | EPOLLRDHUP | EPOLLHUP | EPOLLET;
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0) {
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) < 0)
+    {
         perror("epoll_ctl MOD (clear EPOLLOUT)");
     }
 }
 
-bool send_data_with_buffering(int fd, const char* data, size_t data_size, int epoll_fd)
+bool send_data_with_buffering(int fd, const char *data, size_t data_size, int epoll_fd)
 {
     if (pending_writes.find(fd) != pending_writes.end() && !pending_writes[fd].empty())
     {
@@ -122,7 +131,7 @@ bool send_data_with_buffering(int fd, const char* data, size_t data_size, int ep
         return true;
     }
     ssize_t sent = send(fd, data, data_size, MSG_NOSIGNAL);
-    
+
     if (sent < 0)
     {
         if (errno == EWOULDBLOCK || errno == EAGAIN)
@@ -136,7 +145,7 @@ bool send_data_with_buffering(int fd, const char* data, size_t data_size, int ep
         else
         {
             perror("send failed");
-            cout << "Errno: " << errno <<endl;
+            cout << "Errno: " << errno << endl;
             return false;
         }
     }
@@ -146,7 +155,7 @@ bool send_data_with_buffering(int fd, const char* data, size_t data_size, int ep
         size_t remaining = data_size - sent;
         pending_writes[fd].emplace(data + sent, remaining, fd);
         set_epollout(fd, epoll_fd);
-        cout << "[+] Partial send: sent " << sent << "/" << data_size  << " bytes, queued remaining " << remaining << " bytes for fd " << fd << endl;
+        cout << "[+] Partial send: sent " << sent << "/" << data_size << " bytes, queued remaining " << remaining << " bytes for fd " << fd << endl;
         return true;
     }
     else
@@ -165,15 +174,15 @@ void handle_pending_writes(int fd, int epoll_fd)
         return;
     }
 
-    auto& queue = pending_writes[fd];
-    
+    auto &queue = pending_writes[fd];
+
     while (!queue.empty())
     {
-        PendingData& pending = queue.front();
+        PendingData &pending = queue.front();
         size_t remaining = pending.buffer.size() - pending.offset;
-        
+
         ssize_t sent = send(fd, pending.buffer.data() + pending.offset, remaining, MSG_NOSIGNAL);
-        
+
         if (sent < 0)
         {
             if (errno == EWOULDBLOCK || errno == EAGAIN)
@@ -192,7 +201,7 @@ void handle_pending_writes(int fd, int epoll_fd)
         {
             // Partial send case
             pending.offset += sent;
-            cout << "[+] Partial send: sent " << sent << "/" << remaining  << " bytes from pending data for fd " << fd << endl;
+            cout << "[+] Partial send: sent " << sent << "/" << remaining << " bytes from pending data for fd " << fd << endl;
             return;
         }
         else
@@ -201,7 +210,7 @@ void handle_pending_writes(int fd, int epoll_fd)
             queue.pop();
         }
     }
-    
+
     if (queue.empty())
     {
         // All data in the queue is transmitted.

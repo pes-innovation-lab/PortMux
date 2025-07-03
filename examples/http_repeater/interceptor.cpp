@@ -24,6 +24,14 @@ int main()
     convert_to_non_blocking(interceptor_socket);
     add_to_epoll(interceptor_socket, epoll_fd, epinitializer);
 
+    int enable = 1;
+    if (setsockopt(interceptor_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+    {
+        perror("setsockopt(SO_REUSEADDR) failed");
+        close(interceptor_socket);
+        exit(EXIT_FAILURE);
+    }
+
     if (bind(interceptor_socket, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
     {
         cout << "Error binding interceptor_socket" << endl;
@@ -46,6 +54,8 @@ int main()
         {
             if (events_arr[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
             {
+                cout << "Disconnect is due to EPOLLERR/EPOLLHUP/EPOLLRDHUP!" << endl;
+                cout << strerror(errno) << endl;
                 handle_disconnect(events_arr[i].data.fd, epoll_fd);
                 continue;
             }
@@ -66,6 +76,13 @@ int main()
                     cout << "Client could not connect!" << endl;
                     continue;
                 }
+                int enable = 1;
+                if (setsockopt(connection_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+                {
+                    perror("setsockopt(SO_REUSEADDR) failed");
+                    close(connection_socket);
+                    exit(EXIT_FAILURE);
+                }
 
                 convert_to_non_blocking(connection_socket);
                 add_to_epoll(connection_socket, epoll_fd, epinitializer);
@@ -81,11 +98,11 @@ int main()
                 // Read as much data as possible in edge-triggered mode
                 char service_buffer[READ_SIZE + 1] = {0};
                 ssize_t service_bytes;
-                
+
                 while ((service_bytes = recv(service_fd, service_buffer, sizeof(service_buffer) - 1, 0)) > 0)
                 {
                     cout << "[+] Received " << service_bytes << " bytes from service FD: " << service_fd << endl;
-                    
+
                     // Handling partial send/block
                     if (!send_data_with_buffering(client_fd, service_buffer, service_bytes, epoll_fd))
                     {
@@ -93,10 +110,10 @@ int main()
                         handle_disconnect(client_fd, epoll_fd);
                         break;
                     }
-                    
+
                     memset(service_buffer, 0, sizeof(service_buffer));
                 }
-                
+
                 if (service_bytes == 0)
                 {
                     cout << "[!] Service disconnected (FD: " << service_fd << ")" << endl;
@@ -118,21 +135,21 @@ int main()
                 // Read as much data as possible in edge-triggered mode
                 char client_buffer[READ_SIZE + 1] = {0};
                 ssize_t client_bytes;
-                
+
                 while ((client_bytes = recv(client_fd, client_buffer, sizeof(client_buffer) - 1, 0)) > 0)
                 {
                     cout << "[+] Received " << client_bytes << " bytes from client FD: " << client_fd << endl;
-                    
+
                     if (!send_data_with_buffering(service_fd, client_buffer, client_bytes, epoll_fd))
                     {
                         cout << "[-] Failed to queue data for service" << endl;
                         handle_disconnect(client_fd, epoll_fd);
                         break;
                     }
-                    
+
                     memset(client_buffer, 0, sizeof(client_buffer));
                 }
-                
+
                 if (client_bytes == 0)
                 {
                     cout << "[!] Client disconnected (FD: " << client_fd << ")" << endl;
