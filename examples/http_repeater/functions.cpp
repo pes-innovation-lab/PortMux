@@ -27,12 +27,11 @@ void add_to_epoll(int socketfd, int epoll_fd, struct epoll_event epinitializer)
 
 void handle_disconnect(int fd, int epoll_fd)
 {
-    cout << "[!] A connection with FD: " << fd << " disconnected! " << endl;
-    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr); // Removing it from interest list
-    close(fd);
-
     if (client_to_service_map.find(fd) != client_to_service_map.end())
     {
+        cout << "[!] A Client with FD: " << fd << " disconnected! " << endl;
+        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr); // Removing it from interest list
+        close(fd);
         // This is a client socket
         int client_fd = fd;
         int service_fd = client_to_service_map[client_fd];
@@ -43,10 +42,13 @@ void handle_disconnect(int fd, int epoll_fd)
         service_to_client_map.erase(service_fd);
         client_to_service_map.erase(client_fd);
 
-        cout << "[!] Client with FD: " << client_fd << " has disconnected!";
+        cout << "[!] Service with with FD: " << service_fd << " has disconnected!" << endl;
     }
     else if (service_to_client_map.find(fd) != service_to_client_map.end())
     {
+        cout << "[!] Service with FD: " << fd << " disconnected! " << endl;
+        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr); // Removing it from interest list
+        close(fd);
         // This is a service socket
         int service_fd = fd;
         int client_fd = service_to_client_map[service_fd];
@@ -57,6 +59,7 @@ void handle_disconnect(int fd, int epoll_fd)
         // Remove mappings
         service_to_client_map.erase(service_fd);
         client_to_service_map.erase(client_fd);
+        cout << "[!] A Client with FD: " << client_fd << " disconnected! " << endl;
     }
 }
 
@@ -78,6 +81,8 @@ void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitia
         perror("[-] Failed to connect to service");
         close(service_fd);
     }
+  
+    cout << "The service's fd is " << service_fd << " \n";
 
     convert_to_non_blocking(service_fd);
 
