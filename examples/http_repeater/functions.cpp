@@ -136,6 +136,7 @@ bool send_data_with_buffering(int fd, const char* data, size_t data_size, int ep
         else
         {
             perror("send failed");
+            cout << "Errno: " << errno <<endl;
             return false;
         }
     }

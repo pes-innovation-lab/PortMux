@@ -33,7 +33,7 @@ struct PendingData {
 
 extern unordered_map<int, int> service_to_client_map;
 extern unordered_map<int, int> client_to_service_map;
-extern std::unordered_map<int, std::queue<PendingData>> pending_writes;
+extern unordered_map<int, queue<PendingData>> pending_writes;
 
 void convert_to_non_blocking(int socketfd);
 void add_to_epoll(int socketfd, int epoll_fd, struct epoll_event epinitializer);
