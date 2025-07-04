@@ -4,6 +4,8 @@ unordered_map<int, int> service_to_client_map;
 unordered_map<int, int> client_to_service_map;
 std::unordered_map<int, std::queue<PendingData>> pending_writes;
 
+int service_port;
+
 void convert_to_non_blocking(int socketfd)
 {
     if (fcntl(socketfd, F_SETFL, O_NONBLOCK) < 0)
@@ -85,7 +87,7 @@ void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitia
 
     sockaddr_in service_addr;
     service_addr.sin_family = AF_INET;
-    service_addr.sin_port = htons(SSH_PORT);
+    service_addr.sin_port = htons(service_port);
     service_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     if (connect(service_fd, (sockaddr *)&service_addr, sizeof(service_addr)) < 0)
@@ -222,4 +224,19 @@ void handle_pending_writes(int fd, int epoll_fd)
         clear_epollout(fd, epoll_fd);
         cout << "[+] All pending data sent for fd " << fd << ", cleared EPOLLOUT" << endl;
     }
+}
+
+string resolve_ip(int fd)
+{
+    struct sockaddr_in addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+
+    int result = getpeername(fd, (struct sockaddr *)&addr, &addr_size);
+    if (result < 0)
+    {
+        // Could not resolve into IP Address. 
+        perror("getpeername");
+        return "unknown";
+    }
+    return string(inet_ntoa(addr.sin_addr));
 }

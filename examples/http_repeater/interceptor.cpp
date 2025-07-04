@@ -86,6 +86,14 @@ int main()
                 convert_to_non_blocking(connection_socket);
                 add_to_epoll(connection_socket, epoll_fd, epinitializer);
                 cout << "Client with fd = " << connection_socket << ", has connected!" << endl;
+                string ip1=resolve_ip(connection_socket);
+                if(strcmp(ip1.c_str(),"172.16.172.55")==0)
+                {
+                  service_port=HTTP_PORT;
+                }
+                else{
+                  service_port=SSH_PORT;
+                }
 
         connect_to_service(connection_socket, epoll_fd, epinitializer);
       }
@@ -93,15 +101,7 @@ int main()
       {
         int service_fd = events_arr[i].data.fd;
         int client_fd = service_to_client_map[service_fd];
-                connect_to_service(connection_socket, epoll_fd, epinitializer);
-            }
-            else if (service_to_client_map.find(events_arr[i].data.fd) != service_to_client_map.end())
-            {
-                int service_fd = events_arr[i].data.fd;
-                int client_fd = service_to_client_map[service_fd];
-
-                // Read as much data as possible in edge-triggered mode
-                char service_buffer[READ_SIZE + 1] = {0};
+        char service_buffer[READ_SIZE + 1] = {0};
                 ssize_t service_bytes;
 
                 while ((service_bytes = recv(service_fd, service_buffer, sizeof(service_buffer) - 1, 0)) > 0)

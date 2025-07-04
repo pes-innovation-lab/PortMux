@@ -6,3 +6,6 @@ inter2
 server2
 .vscode
 settings.json
+/examples/http_repeater/functions.o
+/examples/http_repeater/interceptor.o
+/examples/http_repeater/repeater
