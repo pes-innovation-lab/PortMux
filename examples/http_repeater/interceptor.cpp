@@ -89,9 +89,11 @@ int main()
                 string ip1=resolve_ip(connection_socket);
                 if(strcmp(ip1.c_str(),"172.16.172.55")==0)
                 {
+                  cout<<"ip is "<<ip1<<" and sent to http!"<<endl;
                   service_port=HTTP_PORT;
                 }
                 else{
+                  cout<<"ip is "<<ip1<<" and sent to ssh!"<<endl;
                   service_port=SSH_PORT;
                 }
 
