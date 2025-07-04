@@ -71,6 +71,7 @@ void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitia
     if (service_fd < 0)
     {
         perror("[-] Failed to create service socket");
+        handle_disconnect(client_fd, epoll_fd); 
         return;
     }
 
@@ -78,6 +79,7 @@ void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitia
     if (setsockopt(service_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
         perror("setsockopt(SO_REUSEADDR) failed");
         close(service_fd);
+        handle_disconnect(client_fd, epoll_fd); 
         exit(EXIT_FAILURE);
     }
 
@@ -89,6 +91,7 @@ void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitia
     if (connect(service_fd, (sockaddr *)&service_addr, sizeof(service_addr)) < 0)
     {
         perror("[-] Failed to connect to service");
+        handle_disconnect(client_fd, epoll_fd); 
         close(service_fd);
         return;
     }

@@ -54,8 +54,7 @@ int main()
         {
             if (events_arr[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
             {
-                cout << "Disconnect is due to EPOLLERR/EPOLLHUP/EPOLLRDHUP!" << endl;
-                cout << strerror(errno) << endl;
+                cout << strerrorname_np(errno) << " " << strerror(errno) << endl;
                 handle_disconnect(events_arr[i].data.fd, epoll_fd);
                 continue;
             }
