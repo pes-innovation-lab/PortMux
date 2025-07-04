@@ -95,6 +95,8 @@ void connect_to_service(int client_fd, int epoll_fd, struct epoll_event epinitia
         close(service_fd);
         return;
     }
+  
+    cout << "The service's fd is " << service_fd << " \n";
 
     convert_to_non_blocking(service_fd);
 
