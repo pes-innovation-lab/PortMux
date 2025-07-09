@@ -2,9 +2,6 @@
 
 int main()
 {
-    char buffer[4096] = {0};
-    int bytes_read = 0;
-
     int epoll_fd = epoll_create(100);
     if (epoll_fd == -1)
     {
@@ -86,17 +83,7 @@ int main()
                 convert_to_non_blocking(connection_socket);
                 add_to_epoll(connection_socket, epoll_fd, epinitializer);
                 cout << "Client with fd = " << connection_socket << ", has connected!" << endl;
-                string ip1=resolve_ip(connection_socket);
-                if(strcmp(ip1.c_str(),"172.16.172.55")==0)
-                {
-                  cout<<"ip is "<<ip1<<" and sent to http!"<<endl;
-                  service_port=HTTP_PORT;
-                }
-                else{
-                  cout<<"ip is "<<ip1<<" and sent to ssh!"<<endl;
-                  service_port=SSH_PORT;
-                }
-
+                client_analyzed.insert({connection_socket, false});
         connect_to_service(connection_socket, epoll_fd, epinitializer);
       }
       else if (service_to_client_map.find(events_arr[i].data.fd) != service_to_client_map.end())// message from service
@@ -134,7 +121,7 @@ int main()
                     continue;
                 }
             }
-            else if (client_to_service_map.find(events_arr[i].data.fd) != client_to_service_map.end())
+            else if (client_to_service_map.find(events_arr[i].data.fd) != client_to_service_map.end()) //message from client
             {
                 int client_fd = events_arr[i].data.fd;
                 int service_fd = client_to_service_map[client_fd];
@@ -146,6 +133,23 @@ int main()
                 while ((client_bytes = recv(client_fd, client_buffer, sizeof(client_buffer) - 1, 0)) > 0)
                 {
                     cout << "[+] Received " << client_bytes << " bytes from client FD: " << client_fd << endl;
+
+                    if (!client_analyzed[client_fd])
+                    {
+                      vector<uint8_t> message(client_buffer, client_buffer + client_bytes);
+                      Protocol p = detect_protocol(message);
+
+                      client_analyzed[client_fd] = true;
+
+                      switch (p) {
+                        case Protocol::HTTP:       cout << "Protocol: HTTP\n"; break;
+                        case Protocol::HTTPS_TLS:  cout << "Protocol: HTTPS/TLS\n"; break;
+                        case Protocol::SSH:        cout << "Protocol: SSH\n"; break;
+                        case Protocol::MQTT:       cout << "Protocol: MQTT\n"; break;
+                        case Protocol::DNS:        cout << "Protocol: DNS\n"; break;
+                        default:                   cout << "Protocol: Unknown\n"; break;
+                      }
+                    }
 
                     if (!send_data_with_buffering(service_fd, client_buffer, client_bytes, epoll_fd))
                     {

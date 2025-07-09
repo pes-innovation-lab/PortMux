@@ -2,9 +2,9 @@
 
 unordered_map<int, int> service_to_client_map;
 unordered_map<int, int> client_to_service_map;
-std::unordered_map<int, std::queue<PendingData>> pending_writes;
+unordered_map<int, std::queue<PendingData>> pending_writes;
 
-int service_port;
+int service_port = HTTP_PORT;
 
 void convert_to_non_blocking(int socketfd)
 {
@@ -239,4 +239,40 @@ string resolve_ip(int fd)
         return "unknown";
     }
     return string(inet_ntoa(addr.sin_addr));
+}
+
+bool starts_with(const std::string& str, const std::string& prefix) {
+    return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
+}
+
+Protocol detect_protocol(const std::vector<uint8_t>& buffer) {
+    if (buffer.empty()) return Protocol::Unknown;
+
+    string text(buffer.begin(), buffer.begin() + std::min(buffer.size(), size_t(512)));
+
+    if (starts_with(text, "GET ") || starts_with(text, "POST ") ||
+        starts_with(text, "HEAD ") || starts_with(text, "PUT ") ||
+        starts_with(text, "HTTP/")) {
+        return Protocol::HTTP;
+    }
+
+    if (starts_with(text, "SSH-")) {
+        return Protocol::SSH;
+    }
+
+    if (starts_with(text, "220 ")) {
+        if (text.find("SMTP") != std::string::npos) return Protocol::SMTP;
+        if (text.find("FTP") != std::string::npos) return Protocol::FTP;
+    }
+
+    if (buffer.size() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03) {
+        return Protocol::HTTPS_TLS;
+    }
+
+    // MQTT: CONNECT message has high nibble == 0x10
+    if ((buffer[0] & 0xF0) == 0x10) {
+        return Protocol::MQTT;
+    }
+
+    return Protocol::Unknown;
 }
