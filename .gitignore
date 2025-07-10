@@ -9,3 +9,4 @@ settings.json
 /examples/http_repeater/functions.o
 /examples/http_repeater/interceptor.o
 /examples/http_repeater/repeater
+/examples/http_repeater/ftpintercept.cpp
