@@ -16,7 +16,7 @@
 #ifndef HEADERS_HPP
 #define HEADERS_HPP
 
-#define HTTP_PORT 5501
+#define HTTP_PORT 6970
 #define SSH_PORT 22
 #define INTERCEPTOR_PORT 8080
 #define MAX_EVENTS 500
@@ -32,10 +32,22 @@ struct PendingData {
         : buffer(data, data + size), offset(0), target_fd(fd) {}
 };
 
+enum class Protocol {
+    Unknown,
+    HTTP,
+    HTTPS_TLS,
+    SSH,
+    MQTT,
+    DNS,
+    SMTP,
+    FTP
+};
+
 extern unordered_map<int, int> service_to_client_map;
 extern unordered_map<int, int> client_to_service_map;
 extern unordered_map<int, queue<PendingData>> pending_writes;
 extern int service_port;
+extern unordered_map<int, bool> client_analyzed;
 
 void convert_to_non_blocking(int socketfd);
 void add_to_epoll(int socketfd, int epoll_fd, struct epoll_event epinitializer);
@@ -46,5 +58,6 @@ void clear_epollout(int fd, int epoll_fd);
 bool send_data_with_buffering(int fd, const char* data, size_t data_size, int epoll_fd);
 void handle_pending_writes(int fd, int epoll_fd);
 string resolve_ip(int client_fd);
+Protocol detect_protocol(const std::vector<uint8_t>& buffer);
 
 #endif
