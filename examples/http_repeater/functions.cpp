@@ -3,6 +3,7 @@
 unordered_map<int, int> service_to_client_map;
 unordered_map<int, int> client_to_service_map;
 unordered_map<int, std::queue<PendingData>> pending_writes;
+unordered_map<int, bool> client_analyzed;
 
 int service_port = HTTP_PORT;
 
