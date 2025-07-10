@@ -42,9 +42,11 @@ int main()
         close(interceptor_socket);
         exit(EXIT_FAILURE);
     }
-
+    int cc=0;
     while (interceptor_socket)
     {
+        cc++;
+        cout<<"LALA "<<cc;
         int event_count = epoll_wait(epoll_fd, events_arr, MAX_EVENTS, 180 * 1000);
 
         for (int i = 0; i < event_count; i++)
@@ -84,7 +86,7 @@ int main()
                 add_to_epoll(connection_socket, epoll_fd, epinitializer);
                 cout << "Client with fd = " << connection_socket << ", has connected!" << endl;
                 client_analyzed.insert({connection_socket, false});
-        connect_to_service(connection_socket, epoll_fd, epinitializer);
+        //connect_to_service(connection_socket, epoll_fd, epinitializer);
       }
       else if (service_to_client_map.find(events_arr[i].data.fd) != service_to_client_map.end())// message from service
       {
@@ -121,11 +123,11 @@ int main()
                     continue;
                 }
             }
-            else if (client_to_service_map.find(events_arr[i].data.fd) != client_to_service_map.end()) //message from client
+            else if (client_to_service_map.find(events_arr[i].data.fd) != client_to_service_map.end()||client_analyzed.find(events_arr[i].data.fd) != client_analyzed.end()) //message from client
             {
+                cout<<"In message from client function!!\n";
                 int client_fd = events_arr[i].data.fd;
-                int service_fd = client_to_service_map[client_fd];
-
+                
                 // Read as much data as possible in edge-triggered mode
                 char client_buffer[READ_SIZE + 1] = {0};
                 ssize_t client_bytes;
@@ -140,16 +142,28 @@ int main()
                       Protocol p = detect_protocol(message);
 
                       client_analyzed[client_fd] = true;
-
                       switch (p) {
-                        case Protocol::HTTP:       cout << "Protocol: HTTP\n"; break;
+                        case Protocol::HTTP:       
+                        {
+                            cout << "Protocol: HTTP\n"; 
+                            service_port=HTTP_PORT;
+                            connect_to_service(client_fd,epoll_fd,epinitializer);
+                            break;
+                        }
                         case Protocol::HTTPS_TLS:  cout << "Protocol: HTTPS/TLS\n"; break;
-                        case Protocol::SSH:        cout << "Protocol: SSH\n"; break;
+                        case Protocol::SSH:        
+                        {
+                            cout << "Protocol: SSH\n"; 
+                            service_port=SSH_PORT;
+                            connect_to_service(client_fd,epoll_fd,epinitializer);
+                            break;
+                        }
                         case Protocol::MQTT:       cout << "Protocol: MQTT\n"; break;
                         case Protocol::DNS:        cout << "Protocol: DNS\n"; break;
                         default:                   cout << "Protocol: Unknown\n"; break;
                       }
                     }
+                    int service_fd = client_to_service_map[client_fd];
 
                     if (!send_data_with_buffering(service_fd, client_buffer, client_bytes, epoll_fd))
                     {
