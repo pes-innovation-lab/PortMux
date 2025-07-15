@@ -8,28 +8,18 @@ static HTTPS_PORT:u16 = 443;
 static SSH_PORT:u16 = 22;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-enum Protocol {
-    Http(u16),
-    Https(u16),
-    Ssh(u16),
-    Mqtt(u16),
-    Unknown,
+struct Protocol {
+    name: &'static str,
+    port: u16,
 }
 
-async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffer:Vec<u8>){
-    let port = match protocol {
-        Protocol::Http(p) => p,
-        Protocol::Https(p) => p,
-        Protocol::Ssh(p) => p,
-        _ => {
-            eprintln!("Unknown protocol, dropping.");
-            return;
-        }
-    };
 
-    match TcpStream::connect(format!("127.0.0.1:{}",port).as_str()).await {
+async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffer:Vec<u8>){
+
+
+    match TcpStream::connect(format!("127.0.0.1:{}",protocol.port).as_str()).await {
         Ok(mut service_socket) => {
-            println!("Connected to service on port {}", port);
+            println!("Connected to service on port {}", protocol.port);
             
             if let Err(err) = service_socket.write_all(&buffer).await {
                 eprintln!("Failed to write initial buffer to service: {}", err);
@@ -49,20 +39,22 @@ async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffe
     }
 }
 
-fn find_protocol(buffer:&Vec<u8>) -> Protocol{
+fn find_protocol(buffer: &Vec<u8>) -> Option<Protocol> {
     let message = String::from_utf8_lossy(buffer);
+    println!("{}",message);
 
-    if (message.contains("HTTP")) {
-        return Protocol::Http(HTTP_PORT);
+    if message.contains("HTTP") {
+        return Some(Protocol { name: "HTTP", port: 6970 });
     }
-    if (message.contains("SSH")) {
-        return Protocol::Ssh(SSH_PORT);
+    if message.contains("HTTPS") {
+        return Some(Protocol { name: "HTTPS", port: 443 });
     }
-    if (message.contains("HTTPS")){
-        return Protocol::Https(HTTPS_PORT)
+    if message.contains("SSH") {
+        return Some(Protocol { name: "SSH", port: 22 });
     }
-    return Protocol::Unknown;
+    None
 }
+
 
 #[tokio::main]
 async fn main() {
@@ -79,7 +71,7 @@ async fn main() {
                     }
                 }
                 
-                let protocol = find_protocol(&buffer);
+                let protocol = find_protocol(&buffer).unwrap();
                 tokio::spawn(async move {
                     handle_connection(client_socket, protocol, buffer).await;
                 });
