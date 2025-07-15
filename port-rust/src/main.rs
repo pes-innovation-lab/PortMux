@@ -41,7 +41,6 @@ async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffe
 
 fn find_protocol(buffer: &Vec<u8>) -> Option<Protocol> {
     let message = String::from_utf8_lossy(buffer);
-    println!("{}",message);
 
     if message.contains("HTTP") {
         return Some(Protocol { name: "HTTP", port: 6970 });
