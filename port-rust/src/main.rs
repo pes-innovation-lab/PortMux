@@ -17,7 +17,7 @@ struct Protocol {
 async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffer:Vec<u8>){
 
 
-    match TcpStream::connect(format!("127.0.0.1:{}",protocol.port).as_str()).await {
+    match TcpStream::connect(format!("127.0.0.1:{}",protocol.port)).await {
         Ok(mut service_socket) => {
             println!("Connected to service on port {}", protocol.port);
             
@@ -64,13 +64,15 @@ async fn main() {
         match client_listener.accept().await {
             Ok((mut client_socket, _addr)) => {
                 let mut buffer = vec![0; 4096];
-                match client_socket.read(&mut buffer).await {
-                    Ok(_current_message) => {},
-                    Err(err) => {
-                        eprintln!("Failed to accept connection: {}", err);
+                let n = match client_socket.read(&mut buffer).await {
+                    Ok(n) if n > 0 => n,
+                    Ok(_) | Err(_) => {
+                        eprintln!("Failed to read from client or empty buffer.");
+                        return;
                     }
-                }
-                
+                };
+            
+                let buffer = buffer[..n].to_vec();
                 let protocol = find_protocol(&buffer).unwrap();
                 tokio::spawn(async move {
                     handle_connection(client_socket, protocol, buffer).await;
