@@ -17,9 +17,17 @@ enum Protocol {
 }
 
 async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffer:Vec<u8>){
-    match TcpStream::connect(format!("127.0.0.1:{}",HTTP_PORT).as_str()).await {
+    let port:u16 = 80;
+    match protocol {
+        Protocol::Http(port) => { port; },
+        Protocol::Https(port) => { port; },
+        Protocol::Ssh(port) => { port; },
+        _ => {},
+    }
+    
+    match TcpStream::connect(format!("127.0.0.1:{}",port).as_str()).await {
         Ok(mut service_socket) => {
-            println!("Connected to service on port {}", HTTP_PORT);
+            println!("Connected to service on port {}", port);
             
             if let Err(err) = service_socket.write_all(&buffer).await {
                 eprintln!("Failed to write initial buffer to service: {}", err);
@@ -80,3 +88,24 @@ async fn main() {
         }
     }
 }
+
+// match TcpStream::connect(format!("127.0.0.1:{}",HTTP_PORT).as_str()).await {
+//         Ok(mut service_socket) => {
+//             println!("Connected to service on port {}", HTTP_PORT);
+            
+//             if let Err(err) = service_socket.write_all(&buffer).await {
+//                 eprintln!("Failed to write initial buffer to service: {}", err);
+//                 return;
+//             }
+
+//             match copy_bidirectional(&mut client_socket, &mut service_socket).await {
+//                 Ok(_) => {},
+//                 Err(err) => {
+//                     eprintln!("Failed to copy data from client_socket to service : {}", err)
+//                 }
+//             }
+//         }
+//         Err(err) => {
+//             eprintln!("Failed to connect to service: {}", err);
+//         }
+//     }
