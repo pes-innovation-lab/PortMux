@@ -10,3 +10,7 @@ settings.json
 /examples/http_repeater/interceptor.o
 /examples/http_repeater/repeater
 /examples/http_repeater/ftpintercept.cpp
+
+
+/port-rust/target
+/port-rust/cargo.lock
