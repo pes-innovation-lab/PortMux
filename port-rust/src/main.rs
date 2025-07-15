@@ -17,14 +17,16 @@ enum Protocol {
 }
 
 async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffer:Vec<u8>){
-    let port:u16 = 80;
-    match protocol {
-        Protocol::Http(port) => { port; },
-        Protocol::Https(port) => { port; },
-        Protocol::Ssh(port) => { port; },
-        _ => {},
-    }
-    
+    let port = match protocol {
+        Protocol::Http(p) => p,
+        Protocol::Https(p) => p,
+        Protocol::Ssh(p) => p,
+        _ => {
+            eprintln!("Unknown protocol, dropping.");
+            return;
+        }
+    };
+
     match TcpStream::connect(format!("127.0.0.1:{}",port).as_str()).await {
         Ok(mut service_socket) => {
             println!("Connected to service on port {}", port);
