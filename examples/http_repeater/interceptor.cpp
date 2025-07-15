@@ -150,7 +150,12 @@ int main()
                             connect_to_service(client_fd,epoll_fd,epinitializer);
                             break;
                         }
-                        case Protocol::HTTPS_TLS:  cout << "Protocol: HTTPS/TLS\n"; break;
+                        case Protocol::HTTPS_TLS:  {
+                             cout << "Protocol: HTTP\n"; 
+                            service_port=HTTP_PORT;
+                            connect_to_service(client_fd,epoll_fd,epinitializer);
+                            break;
+                        }
                         case Protocol::SSH:        
                         {
                             cout << "Protocol: SSH\n"; 
