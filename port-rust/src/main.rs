@@ -40,23 +40,18 @@ async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffe
     }
 }
 
-fn find_protocol(buffer: &Vec<u8>) -> Option<Protocol> {
-    let message = String::from_utf8_lossy(buffer);
-
-    if message.contains("HTTP") {
+fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
+    if buffer.starts_with(b"GET ") || buffer.starts_with(b"POST ") || buffer.windows(4).any(|w| w == b"HTTP") {
         return Some(Protocol { name: "HTTP", port: 6970 });
     }
-
-    if buffer.len() >= 3 && buffer[0] == TLS_HANDSHAKE_RECORD && buffer[1] == TLS_MAJOR && buffer[2] <= TLS_MINOR {
-            return Some(Protocol { name: "HTTPS", port: 443 });
+    if buffer.len() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03 {
+        return Some(Protocol { name: "HTTPS", port: 443 });
     }
-
-    if message.contains("SSH") {
+    if buffer.windows(3).any(|w| w == b"SSH") {
         return Some(Protocol { name: "SSH", port: 22 });
     }
     None
 }
-
 
 #[tokio::main]
 async fn main() {
