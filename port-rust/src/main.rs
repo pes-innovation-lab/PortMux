@@ -43,9 +43,11 @@ fn find_protocol(buffer: &Vec<u8>) -> Option<Protocol> {
     if message.contains("HTTP") {
         return Some(Protocol { name: "HTTP", port: 6970 });
     }
-    if message.contains("HTTPS") {
-        return Some(Protocol { name: "HTTPS", port: 443 });
-    }
+
+     if buffer.len() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03 {
+            return Some(Protocol { name: "HTTPS", port: 443 });
+        }
+
     if message.contains("SSH") {
         return Some(Protocol { name: "SSH", port: 22 });
     }
