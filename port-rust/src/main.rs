@@ -65,7 +65,10 @@ async fn main() {
                 let mut buffer = vec![0; 4096]; // 4kb buffer, subject to change depending on use case and protocol support
                 let n = match client_socket.read(&mut buffer).await {
                     Ok(n) if n > 0 => n, // puttint the size of the buffer in n
-                    Ok(_) | Err(_) => {
+                    Ok(_) => {
+                        continue;
+                    },
+                    Err(_) => {
                         eprintln!("Failed to read from client or empty buffer.");
                         return;
                     }
