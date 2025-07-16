@@ -1,5 +1,4 @@
 #![allow(unused)]
-use libc::protoent;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{copy_bidirectional, AsyncReadExt, AsyncWriteExt};
 
