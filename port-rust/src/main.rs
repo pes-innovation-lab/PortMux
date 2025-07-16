@@ -6,6 +6,9 @@ use tokio::io::{copy_bidirectional, AsyncReadExt, AsyncWriteExt};
 static HTTP_PORT:u16 = 6970;
 static HTTPS_PORT:u16 = 443;
 static SSH_PORT:u16 = 22;
+static TLS_MAJOR:u8 = 0x03;
+static TLS_MINOR:u8 = 0x03;
+static TLS_HANDSHAKE_RECORD:u8 = 0x16;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 struct Protocol {
@@ -44,9 +47,9 @@ fn find_protocol(buffer: &Vec<u8>) -> Option<Protocol> {
         return Some(Protocol { name: "HTTP", port: 6970 });
     }
 
-     if buffer.len() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03 {
+    if buffer.len() >= 3 && buffer[0] == TLS_HANDSHAKE_RECORD && buffer[1] == TLS_MAJOR && buffer[2] <= TLS_MINOR {
             return Some(Protocol { name: "HTTPS", port: 443 });
-        }
+    }
 
     if message.contains("SSH") {
         return Some(Protocol { name: "SSH", port: 22 });
