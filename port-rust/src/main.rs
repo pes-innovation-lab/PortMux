@@ -11,23 +11,21 @@ static SSH_PORT:u16 = 22;
 struct Protocol {
     name: &'static str,
     port: u16,
-}
+} // instead of enum we use structs, its just easier, name is used for string matching with ymal/json in the future -> irrelevent for now
 
 
 async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffer:Vec<u8>){
-
-
-    match TcpStream::connect(format!("127.0.0.1:{}",protocol.port)).await {
+    match TcpStream::connect(format!("127.0.0.1:{}",protocol.port)).await { // match used for error checking -> contingency if connection fails 
         Ok(mut service_socket) => {
             println!("Connected to service on port {}", protocol.port);
             
-            if let Err(err) = service_socket.write_all(&buffer).await {
+            if let Err(err) = service_socket.write_all(&buffer).await { // writing the intercepted first message manually (with error checks)
                 eprintln!("Failed to write initial buffer to service: {}", err);
                 return;
             }
 
-            match copy_bidirectional(&mut client_socket, &mut service_socket).await {
-                Ok(_) => {},
+            match copy_bidirectional(&mut client_socket, &mut service_socket).await {  
+                Ok(_) => {}, // taking client socket and service socket connection and letting connnection sit indefinitely, until disconnection
                 Err(err) => {
                     eprintln!("Failed to copy data from client_socket to service : {}", err)
                 }
@@ -62,19 +60,19 @@ async fn main() {
     loop {
         match client_listener.accept().await {
             Ok((mut client_socket, _addr)) => {
-                let mut buffer = vec![0; 4096];
+                let mut buffer = vec![0; 4096]; // 4kb buffer, subject to change depending on use case and protocol support
                 let n = match client_socket.read(&mut buffer).await {
-                    Ok(n) if n > 0 => n,
+                    Ok(n) if n > 0 => n, // puttint the size of the buffer in n
                     Ok(_) | Err(_) => {
                         eprintln!("Failed to read from client or empty buffer.");
                         return;
                     }
                 };
             
-                let buffer = buffer[..n].to_vec();
-                let protocol = find_protocol(&buffer).unwrap();
+                let buffer = buffer[..n].to_vec(); // reducing the size of the vec from 4kb to actual vector size
+                let protocol = find_protocol(&buffer).unwrap(); // getting the struct with the right port
                 tokio::spawn(async move {
-                    handle_connection(client_socket, protocol, buffer).await;
+                    handle_connection(client_socket, protocol, buffer).await; // spawning a async block for this connection
                 });
             }
             Err(e) => {
@@ -84,23 +82,3 @@ async fn main() {
     }
 }
 
-// match TcpStream::connect(format!("127.0.0.1:{}",HTTP_PORT).as_str()).await {
-//         Ok(mut service_socket) => {
-//             println!("Connected to service on port {}", HTTP_PORT);
-            
-//             if let Err(err) = service_socket.write_all(&buffer).await {
-//                 eprintln!("Failed to write initial buffer to service: {}", err);
-//                 return;
-//             }
-
-//             match copy_bidirectional(&mut client_socket, &mut service_socket).await {
-//                 Ok(_) => {},
-//                 Err(err) => {
-//                     eprintln!("Failed to copy data from client_socket to service : {}", err)
-//                 }
-//             }
-//         }
-//         Err(err) => {
-//             eprintln!("Failed to connect to service: {}", err);
-//         }
-//     }
