@@ -73,6 +73,8 @@ async fn main() {
                 };
             
                 let buffer = buffer[..n].to_vec(); // reducing the size of the vec from 4kb to actual vector size
+                println!("{}", String::from_utf8_lossy(&buffer));
+                return ;
                 let protocol = find_protocol(&buffer).unwrap(); // getting the struct with the right port
                 tokio::spawn(async move {
                     handle_connection(client_socket, protocol, buffer).await; // spawning a async block for this connection
