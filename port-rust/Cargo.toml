@@ -6,3 +6,11 @@ edition = "2024"
 [dependencies]
 tokio = { version = "1.46.1", features = ["full"] }
 libc = "0.2"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[[bin]]
+name = "header_check"
+path = "src/header_check.rs"
