@@ -2,6 +2,8 @@
 use std::collections::HashMap;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, copy_bidirectional};
 use tokio::net::{TcpListener, TcpStream};
+use serde_yml::{Value};
+use std::fs;
 
 static HTTP_PORT: u16 = 6970;
 static HTTPS_PORT: u16 = 443;
@@ -113,14 +115,16 @@ async fn handle_connection(mut client_socket: TcpStream, protocol: Protocol, buf
                 return;
             }
 
-            match copy_bidirectional(&mut client_socket, &mut service_socket).await {
+            println!("Starting bidirectional copy...");
+            match copy_bidirectional(&mut client_socket, &mut service_socket).await {  
                 Ok(_) => {
-                    println!("Connection closed normally");
-                }
+                    println!("Client Disconnected")
+                }, // taking client socket and service socket connection and letting connnection sit indefinitely, until disconnection
                 Err(err) => {
                     eprintln!("Failed to copy data from client_socket to service: {}", err);
                 }
             }
+            println!("Bidirectional copy finished.");
         }
         Err(err) => {
             eprintln!("Failed to connect to service: {}", err);
@@ -129,20 +133,18 @@ async fn handle_connection(mut client_socket: TcpStream, protocol: Protocol, buf
 }
 
 fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
-    // Check for HTTP
-    if buffer.starts_with(b"GET ")
-        || buffer.starts_with(b"POST ")
-        || buffer.starts_with(b"PUT ")
-        || buffer.starts_with(b"DELETE ")
-        || buffer.starts_with(b"HEAD ")
-        || buffer.starts_with(b"OPTIONS ")
-        || buffer.starts_with(b"PATCH ")
-        || buffer.windows(4).any(|w| w == b"HTTP")
-    {
-        return Some(Protocol {
-            name: "HTTP",
-            port: HTTP_PORT,
-        });
+    let config: Value = serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
+    let message = String::from_utf8_lossy(&buffer);
+
+    if buffer.starts_with(b"GET ") || buffer.starts_with(b"POST ") || buffer.windows(4).any(|w| w == b"HTTP") {
+        if let Some(http) = config["http"].as_mapping() {
+            for (key, value) in http {
+                if message.contains(key.as_str().unwrap()){
+                    return Some(Protocol { name: "HTTP", port: value.as_u64().unwrap() as u16})
+                }
+            }
+        }
+        return Some(Protocol { name: "HTTP", port: 80 }); // defaulting to prt 80 if nothing matches
     }
     
     // Check for HTTPS/TLS
@@ -176,8 +178,8 @@ fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
 
 #[tokio::main]
 async fn main() {
-    let client_listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
-    println!("TCP proxy listening on 0.0.0.0:8080");
+    let mut client_listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
+
 
     loop {
         match client_listener.accept().await {
