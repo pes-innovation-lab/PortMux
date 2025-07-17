@@ -147,7 +147,20 @@ fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
         return Some(Protocol { name: "HTTP", port: 80 }); // defaulting to prt 80 if nothing matches
     }
     if buffer.len() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03 {
-        return Some(Protocol { name: "HTTPS", port: 443 });
+        if let Some(service) = parse_sni(buffer) {
+            if let Some(https) = config["https"].as_mapping() {
+                for (key, value) in https {
+                    if service.contains(key.as_str().unwrap()){
+                        return Some(Protocol { name: "HTTPS", port: value.as_u64().unwrap() as u16})
+                    }
+                }
+            }
+        }
+        // Fallback to default HTTPS port if SNI parsing fails
+        return Some(Protocol {
+            name: "HTTPS",
+            port: HTTPS_PORT,
+        });
     }
     if buffer.windows(3).any(|w| w == b"SSH") {
         return Some(Protocol { name: "SSH", port: 22 });
