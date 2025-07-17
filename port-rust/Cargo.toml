@@ -15,3 +15,7 @@ path = "src/main.rs"
 [[bin]]
 name = "header_check"
 path = "src/header_check.rs"
+
+[[bin]]
+name = "test"
+path = "src/test.rs"
