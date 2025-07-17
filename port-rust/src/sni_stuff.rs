@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, copy_bidirectional};
 use tokio::net::{TcpListener, TcpStream};
 
-static HTTP_PORT: u16 = 6970;
-static HTTPS_PORT: u16 = 443;
+static HTTP_PORT: u16 = 3000;
+static HTTPS_PORT: u16 = 3001;
 static SSH_PORT: u16 = 22;
 static TLS_MAJOR: u8 = 0x03;
 static TLS_MINOR: u8 = 0x03;
@@ -18,8 +18,9 @@ struct Protocol {
 
 fn get_https_backend_port_for_sni(sni: &str) -> Option<u16> {
     let mut sni_map = HashMap::new();
-    sni_map.insert("example.com", 8443);
-    sni_map.insert("test.local", 9443);
+    sni_map.insert("test.test", 3000);
+    sni_map.insert("shop.test", 3001);
+    sni_map.insert("jobs.test", 3002);
     sni_map.get(sni).copied()
 }
 
@@ -152,7 +153,7 @@ fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
             if let Some(port) = get_https_backend_port_for_sni(&sni) {
                 return Some(Protocol {
                     name: "HTTPS",
-                    port,
+                    port: port,
                 });
             }
         }
