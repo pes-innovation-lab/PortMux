@@ -1,5 +1,5 @@
 
-http:
+http: ## the keys must be strings that exist inside of the inital header message
   "www.youtube.com" : 6969
   "127.0.0.1:8080" : 6970
 https:
