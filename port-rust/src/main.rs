@@ -65,11 +65,41 @@ fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
     if buffer.windows(3).any(|w| w == b"SSH") {
         return Some(Protocol { name: "SSH", port: 22 });
     }
-    if buffer.len() >= 1 {
-        // OpenVPN packets start with specific opcodes, e.g., control channel or data channel
-        // This checks for a control channel packet (could be P_CONTROL or P_ACK)
-        if buffer[0] == 0x01 || buffer[0] == 0x02 || buffer[0] == 0x03 {
-            return Some(Protocol { name: "OpenVPN", port: 1194 });
+    if buffer.len() > 2 {
+        // TCP mode: first 2 bytes are packet length, actual data starts at buffer[2]
+        let tcp_opcode = buffer[2] >> 3;
+        if (1..=7).contains(&tcp_opcode) {
+            if let Some(openvpn) = config["openvpn"].as_mapping() {
+                for (_, value) in openvpn {
+                    match value.as_u64() {
+                        Some(port_num) => {
+                            return Some(Protocol { name: "OPENVPN", port: port_num as u16 });
+                        }
+                        None => return Some(Protocol { name: "OPENVPN", port: 1194 })
+                    }
+                }
+            } else {
+                return Some(Protocol { name: "OPENVPN", port: 1194 });
+            }
+        }
+    }
+    if buffer.len() > 0 {
+        //UDP Mode: the opcode is in the first byte
+        let opcode = buffer[0] >> 3;
+        if matches!(opcode, 0x01..=0x07) {
+            if let Some(openvpn) = config["openvpn"].as_mapping() {
+                for (_, value) in openvpn {
+                    match value.as_u64() {
+                        Some(port_num) => {
+                            return Some(Protocol { name: "OPENVPN", port: port_num as u16});
+                        }
+
+                        None => return Some(Protocol { name: "OPENVPN", port: 1194 })
+                    }
+                }
+            } else {
+                return Some(Protocol { name: "OPENVPN", port: 1194 });
+            }
         }
     }
     None
@@ -107,4 +137,6 @@ async fn main() {
         }
     }
 }
+
+
 
