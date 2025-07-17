@@ -1,7 +1,7 @@
 #![allow(unused)]
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{copy_bidirectional, AsyncReadExt, AsyncWriteExt};
-use serde_yaml::{Value};
+use serde_yml::{Value};
 use std::fs;
 
 static HTTP_PORT:u16 = 6970;
@@ -42,7 +42,7 @@ async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffe
 }
 
 fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
-    let config: Value = serde_yaml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
+    let config: Value = serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
     let message = String::from_utf8_lossy(&buffer);
 
     if buffer.starts_with(b"GET ") || buffer.starts_with(b"POST ") || buffer.windows(4).any(|w| w == b"HTTP") {
