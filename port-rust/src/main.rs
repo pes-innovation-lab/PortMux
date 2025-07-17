@@ -5,7 +5,6 @@ use tokio::io::{copy_bidirectional, AsyncReadExt, AsyncWriteExt};
 static HTTP_PORT:u16 = 6970;
 static HTTPS_PORT:u16 = 443;
 static SSH_PORT:u16 = 22;
-static OPENVPN_PORT:u16 = 1194;
 static TLS_MAJOR:u8 = 0x03;
 static TLS_MINOR:u8 = 0x03;
 static TLS_HANDSHAKE_RECORD:u8 = 0x16;
@@ -42,19 +41,19 @@ async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffe
 
 fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
     if buffer.starts_with(b"GET ") || buffer.starts_with(b"POST ") || buffer.windows(4).any(|w| w == b"HTTP") {
-        return Some(Protocol { name: "HTTP", port: HTTP_PORT });
+        return Some(Protocol { name: "HTTP", port: 4970 });
     }
     if buffer.len() >= 3 && buffer[0] == TLS_HANDSHAKE_RECORD && buffer[1] == TLS_MAJOR && buffer[2] <= TLS_MINOR {
-        return Some(Protocol { name: "HTTPS", port: HTTPS_PORT });
+        return Some(Protocol { name: "HTTPS", port: 443 });
     }
     if buffer.windows(3).any(|w| w == b"SSH") {
-        return Some(Protocol { name: "SSH", port: SSH_PORT });
+        return Some(Protocol { name: "SSH", port: 22 });
     }
     if buffer.len() >= 1 {
         // OpenVPN packets start with specific opcodes, e.g., control channel or data channel
         // This checks for a control channel packet (could be P_CONTROL or P_ACK)
         if buffer[0] == 0x01 || buffer[0] == 0x02 || buffer[0] == 0x03 {
-            return Some(Protocol { name: "OpenVPN", port: OPENVPN_PORT });
+            return Some(Protocol { name: "OpenVPN", port: 1194 });
         }
     }
     None
