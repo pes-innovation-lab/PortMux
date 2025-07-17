@@ -28,12 +28,16 @@ async fn handle_connection(mut client_socket:TcpStream, protocol:Protocol, buffe
                 return;
             }
 
+            println!("Starting bidirectional copy...");
             match copy_bidirectional(&mut client_socket, &mut service_socket).await {  
-                Ok(_) => {}, // taking client socket and service socket connection and letting connnection sit indefinitely, until disconnection
+                Ok(_) => {
+                    println!("Client Disconnected")
+                }, // taking client socket and service socket connection and letting connnection sit indefinitely, until disconnection
                 Err(err) => {
                     eprintln!("Failed to copy data from client_socket to service : {}", err)
                 }
             }
+            println!("Bidirectional copy finished.");
         }
         Err(err) => {
             eprintln!("Failed to connect to service: {}", err);
