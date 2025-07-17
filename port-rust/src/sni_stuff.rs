@@ -2,11 +2,9 @@
 use std::collections::HashMap;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, copy_bidirectional};
 use tokio::net::{TcpListener, TcpStream};
-use serde_yml::{Value};
-use std::fs;
 
-static HTTP_PORT: u16 = 6970;
-static HTTPS_PORT: u16 = 443;
+static HTTP_PORT: u16 = 3000;
+static HTTPS_PORT: u16 = 3001;
 static SSH_PORT: u16 = 22;
 static TLS_MAJOR: u8 = 0x03;
 static TLS_MINOR: u8 = 0x03;
@@ -20,8 +18,9 @@ struct Protocol {
 
 fn get_https_backend_port_for_sni(sni: &str) -> Option<u16> {
     let mut sni_map = HashMap::new();
-    sni_map.insert("example.com", 8443);
-    sni_map.insert("test.local", 9443);
+    sni_map.insert("test.test", 3000);
+    sni_map.insert("shop.test", 3001);
+    sni_map.insert("jobs.test", 3002);
     sni_map.get(sni).copied()
 }
 
@@ -115,16 +114,14 @@ async fn handle_connection(mut client_socket: TcpStream, protocol: Protocol, buf
                 return;
             }
 
-            println!("Starting bidirectional copy...");
-            match copy_bidirectional(&mut client_socket, &mut service_socket).await {  
+            match copy_bidirectional(&mut client_socket, &mut service_socket).await {
                 Ok(_) => {
-                    println!("Client Disconnected")
-                }, // taking client socket and service socket connection and letting connnection sit indefinitely, until disconnection
+                    println!("Connection closed normally");
+                }
                 Err(err) => {
                     eprintln!("Failed to copy data from client_socket to service: {}", err);
                 }
             }
-            println!("Bidirectional copy finished.");
         }
         Err(err) => {
             eprintln!("Failed to connect to service: {}", err);
@@ -133,69 +130,55 @@ async fn handle_connection(mut client_socket: TcpStream, protocol: Protocol, buf
 }
 
 fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
-    let config: Value = serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
-    let message = String::from_utf8_lossy(&buffer);
-
-    if buffer.starts_with(b"GET ") || buffer.starts_with(b"POST ") || buffer.windows(4).any(|w| w == b"HTTP") {
-        if let Some(http) = config["http"].as_mapping() {
-            for (key, value) in http {
-                if message.contains(key.as_str().unwrap()){
-                    return Some(Protocol { name: "HTTP", port: value.as_u64().unwrap() as u16})
-                }
-            }
-        }
-        return Some(Protocol { name: "HTTP", port: 80 }); // defaulting to prt 80 if nothing matches
+    // Check for HTTP
+    if buffer.starts_with(b"GET ")
+        || buffer.starts_with(b"POST ")
+        || buffer.starts_with(b"PUT ")
+        || buffer.starts_with(b"DELETE ")
+        || buffer.starts_with(b"HEAD ")
+        || buffer.starts_with(b"OPTIONS ")
+        || buffer.starts_with(b"PATCH ")
+        || buffer.windows(4).any(|w| w == b"HTTP")
+    {
+        return Some(Protocol {
+            name: "HTTP",
+            port: HTTP_PORT,
+        });
     }
+    
+    // Check for HTTPS/TLS
     if buffer.len() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03 {
-        return Some(Protocol { name: "HTTPS", port: 443 });
-    }
-    if buffer.windows(3).any(|w| w == b"SSH") {
-        return Some(Protocol { name: "SSH", port: 22 });
-    }
-    if buffer.len() > 2 {
-        // TCP mode: first 2 bytes are packet length, actual data starts at buffer[2]
-        let tcp_opcode = buffer[2] >> 3;
-        if (1..=7).contains(&tcp_opcode) {
-            if let Some(openvpn) = config["openvpn"].as_mapping() {
-                for (_, value) in openvpn {
-                    match value.as_u64() {
-                        Some(port_num) => {
-                            return Some(Protocol { name: "OPENVPN", port: port_num as u16 });
-                        }
-                        None => return Some(Protocol { name: "OPENVPN", port: 1194 })
-                    }
-                }
-            } else {
-                return Some(Protocol { name: "OPENVPN", port: 1194 });
+        if let Some(sni) = parse_sni(buffer) {
+            println!("SNI Detected: {}", sni);
+            if let Some(port) = get_https_backend_port_for_sni(&sni) {
+                return Some(Protocol {
+                    name: "HTTPS",
+                    port: port,
+                });
             }
         }
+        // Fallback to default HTTPS port if SNI parsing fails
+        return Some(Protocol {
+            name: "HTTPS",
+            port: HTTPS_PORT,
+        });
     }
-    if buffer.len() > 0 {
-        //UDP Mode: the opcode is in the first byte
-        let opcode = buffer[0] >> 3;
-        if matches!(opcode, 0x01..=0x07) {
-            if let Some(openvpn) = config["openvpn"].as_mapping() {
-                for (_, value) in openvpn {
-                    match value.as_u64() {
-                        Some(port_num) => {
-                            return Some(Protocol { name: "OPENVPN", port: port_num as u16});
-                        }
-
-                        None => return Some(Protocol { name: "OPENVPN", port: 1194 })
-                    }
-                }
-            } else {
-                return Some(Protocol { name: "OPENVPN", port: 1194 });
-            }
-        }
+    
+    // Check for SSH
+    if buffer.starts_with(b"SSH-") {
+        return Some(Protocol {
+            name: "SSH",
+            port: SSH_PORT,
+        });
     }
+    
     None
 }
 
 #[tokio::main]
 async fn main() {
-    let mut client_listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
-
+    let client_listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    println!("TCP proxy listening on 0.0.0.0:8080");
 
     loop {
         match client_listener.accept().await {
@@ -237,6 +220,3 @@ async fn main() {
         }
     }
 }
-
-
-

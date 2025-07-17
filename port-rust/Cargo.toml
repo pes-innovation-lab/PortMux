@@ -7,6 +7,7 @@ edition = "2024"
 tokio = { version = "1.46.1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yml = "0.0.12"
+tls-parser = "0.11"
 
 [[bin]]
 name = "main"
@@ -17,5 +18,5 @@ name = "header_check"
 path = "src/header_check.rs"
 
 [[bin]]
-name = "test"
-path = "src/test.rs"
+name="sni_stuff"
+path="src/sni_stuff.rs"
