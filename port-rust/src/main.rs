@@ -5,11 +5,8 @@ use tokio::net::{TcpListener, TcpStream};
 use serde_yml::{Value};
 use std::fs;
 
-static HTTP_PORT: u16 = 6970;
 static HTTPS_PORT: u16 = 443;
-static SSH_PORT: u16 = 22;
 static TLS_MAJOR: u8 = 0x03;
-static TLS_MINOR: u8 = 0x03;
 static TLS_HANDSHAKE_RECORD: u8 = 0x16;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -29,7 +26,7 @@ fn parse_sni(buffer: &[u8]) -> Option<String> {
     let mut pos = 0;
     
     // Check minimum length and TLS record type
-    if buffer.len() < 5 || buffer[0] != 0x16 || buffer[1] != 0x03 {
+    if buffer.len() < 5 || buffer[0] != TLS_HANDSHAKE_RECORD || buffer[1] != TLS_MAJOR {
         return None;
     }
     pos += 5; // Skip record header
