@@ -12,11 +12,3 @@ tls-parser = "0.11"
 [[bin]]
 name = "main"
 path = "src/main.rs"
-
-[[bin]]
-name = "header_check"
-path = "src/header_check.rs"
-
-[[bin]]
-name="sni_stuff"
-path="src/sni_stuff.rs"
