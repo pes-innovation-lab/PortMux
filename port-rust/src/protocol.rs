@@ -101,9 +101,11 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
                 if message.contains(key.as_str().unwrap()){
                     return Some(Protocol { name: "HTTP", port: value.as_u64().unwrap() as u16})
                 }
+                else{
+                    return Some(Protocol { name: "HTTP", port: http["default"].as_u64().unwrap() as u16})// defaulting to prt 80 if nothing matches
+                }
             }
         }
-        return Some(Protocol { name: "HTTP", port: 6970 }); // defaulting to prt 80 if nothing matches
     }
     if buffer.len() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03 {
         if let Some(service) = parse_sni(buffer) {

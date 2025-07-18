@@ -1,15 +1,17 @@
 http: ## the keys must be strings that exist inside of the inital header message
   "test.test" : 6969
   "jobs.test" : 6970
+  "default" : 80
 https:
   "test.test" : 3000
   "shop.test" : 3001
   "jobs.test" : 3002
+  "default" : 80
 openvpn:
-  "1": 1194
+  "default" : 1194
 ssh:
-  "1" : 22
+  "default" : 22
 sftp:
-  "1" : 22
+  "default" : 80
 user:
 
