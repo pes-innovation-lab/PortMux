@@ -15,13 +15,6 @@ struct Protocol {
     port: u16,
 }
 
-fn get_https_backend_port_for_sni(sni: &str) -> Option<u16> {
-    let mut sni_map = HashMap::new();
-    sni_map.insert("example.com", 8443);
-    sni_map.insert("test.local", 9443);
-    sni_map.get(sni).copied()
-}
-
 fn parse_sni(buffer: &[u8]) -> Option<String> {
     let mut pos = 0;
     
