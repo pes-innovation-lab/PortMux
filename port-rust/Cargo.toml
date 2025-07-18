@@ -7,7 +7,6 @@ edition = "2024"
 tokio = { version = "1.46.1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yml = "0.0.12"
-tls-parser = "0.11"
 
 [[bin]]
 name = "main"
