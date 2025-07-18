@@ -114,17 +114,15 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
                     if service.contains(key.as_str().unwrap()){
                         return Some(Protocol { name: "HTTPS", port: value.as_u64().unwrap() as u16})
                     }
+                    else{
+                        return Some(Protocol { name: "HTTPS", port: https["default"].as_u64().unwrap() as u16 })
+                    }
                 }
             }
         }
-        // Fallback to default HTTPS port if SNI parsing fails
-        return Some(Protocol {
-            name: "HTTPS",
-            port: HTTPS_PORT,
-        });
     }
     if buffer.windows(3).any(|w| w == b"SSH") {
-        return Some(Protocol { name: "SSH", port: 22 });
+        return Some(Protocol { name: "SSH", port: config["SSH"]["default"].as_u64().unwrap() as u16 });
     }
     if buffer.len() > 2 {
         // TCP mode: first 2 bytes are packet length, actual data starts at buffer[2]

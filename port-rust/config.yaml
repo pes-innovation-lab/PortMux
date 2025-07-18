@@ -6,7 +6,7 @@ https:
   "test.test" : 3000
   "shop.test" : 3001
   "jobs.test" : 3002
-  "default" : 80
+  "default" : 443
 openvpn:
   "default" : 1194
 ssh:
