@@ -1,17 +1,17 @@
-http: ## the keys must be strings that exist inside of the inital header message
+HTTP: ## the keys must be strings that exist inside of the inital header message
   "test.test" : 6969
   "jobs.test" : 6970
   "default" : 80
-https:
+HTTPS:
   "test.test" : 3000
   "shop.test" : 3001
   "jobs.test" : 3002
   "default" : 443
-openvpn:
+OPENVPN:
   "default" : 1194
-ssh:
+SSH:
   "default" : 22
-sftp:
+SFTP:
   "default" : 80
-user:
+USER:
 

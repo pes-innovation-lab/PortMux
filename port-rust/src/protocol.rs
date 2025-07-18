@@ -7,7 +7,6 @@ pub struct Protocol {
     pub port: u16,
 }
 
-static HTTPS_PORT: u16 = 443;
 static TLS_MAJOR: u8 = 0x03;
 static TLS_HANDSHAKE_RECORD: u8 = 0x16;
 
@@ -96,7 +95,7 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
     let message = String::from_utf8_lossy(&buffer);
 
     if buffer.starts_with(b"GET ") || buffer.starts_with(b"POST ") || buffer.windows(4).any(|w| w == b"HTTP") {
-        if let Some(http) = config["http"].as_mapping() {
+        if let Some(http) = config["HTTP"].as_mapping() {
             for (key, value) in http {
                 if message.contains(key.as_str().unwrap()){
                     return Some(Protocol { name: "HTTP", port: value.as_u64().unwrap() as u16})
@@ -109,7 +108,7 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
     }
     if buffer.len() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03 {
         if let Some(service) = parse_sni(buffer) {
-            if let Some(https) = config["https"].as_mapping() {
+            if let Some(https) = config["HTTPS"].as_mapping() {
                 for (key, value) in https {
                     if service.contains(key.as_str().unwrap()){
                         return Some(Protocol { name: "HTTPS", port: value.as_u64().unwrap() as u16})
@@ -128,38 +127,38 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
         // TCP mode: first 2 bytes are packet length, actual data starts at buffer[2]
         let tcp_opcode = buffer[2] >> 3;
         if (1..=7).contains(&tcp_opcode) {
-            if let Some(openvpn) = config["openvpn"].as_mapping() {
+            if let Some(openvpn) = config["OPENVPN"].as_mapping() {
                 for (_, value) in openvpn {
                     match value.as_u64() {
                         Some(port_num) => {
                             return Some(Protocol { name: "OPENVPN", port: port_num as u16 });
                         }
-                        None => return Some(Protocol { name: "OPENVPN", port: 1194 })
+                        None => break
                     }
                 }
             } else {
-                return Some(Protocol { name: "OPENVPN", port: 1194 });
+                return Some(Protocol { name: "OPENVPN", port: config["OPENVPN"]["default"].as_u64().unwrap() as u16 });
             }
         }
     }
-    if buffer.len() > 0 {
-        //UDP Mode: the opcode is in the first byte
-        let opcode = buffer[0] >> 3;
-        if matches!(opcode, 0x01..=0x07) {
-            if let Some(openvpn) = config["openvpn"].as_mapping() {
-                for (_, value) in openvpn {
-                    match value.as_u64() {
-                        Some(port_num) => {
-                            return Some(Protocol { name: "OPENVPN", port: port_num as u16});
-                        }
+    // if buffer.len() > 0 {
+    //     //UDP Mode: the opcode is in the first byte
+    //     let opcode = buffer[0] >> 3;
+    //     if matches!(opcode, 0x01..=0x07) {
+    //         if let Some(openvpn) = config["openvpn"].as_mapping() {
+    //             for (_, value) in openvpn {
+    //                 match value.as_u64() {
+    //                     Some(port_num) => {
+    //                         return Some(Protocol { name: "OPENVPN", port: port_num as u16});
+    //                     }
 
-                        None => return Some(Protocol { name: "OPENVPN", port: 1194 })
-                    }
-                }
-            } else {
-                return Some(Protocol { name: "OPENVPN", port: 1194 });
-            }
-        }
-    }
+    //                     None => return Some(Protocol { name: "OPENVPN", port: 1194 })
+    //                 }
+    //             }
+    //         } else {
+    //             return Some(Protocol { name: "OPENVPN", port: 1194 });
+    //         }
+    //     }
+    // }
     None
 }
