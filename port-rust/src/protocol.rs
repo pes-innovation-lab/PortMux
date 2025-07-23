@@ -114,10 +114,8 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
                     if service.contains(key.as_str().unwrap()){
                         return Some(Protocol { name: "HTTPS", port: value["port"].as_u64().unwrap() as u16, priority: value["priority"].as_str().unwrap().to_string()})
                     }
-                    else{
-                        return Some(Protocol { name: "HTTPS", port: https["default"]["port"].as_u64().unwrap() as u16, priority: https["default"]["priority"].as_str().unwrap().to_string()})
-                    }
                 }
+                return Some(Protocol { name: "HTTPS", port: https["default"]["port"].as_u64().unwrap() as u16, priority: https["default"]["priority"].as_str().unwrap().to_string()})
             }
         }
     }
