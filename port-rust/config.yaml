@@ -30,7 +30,7 @@ OPENVPN:
 SSH:
   "default" : 22
 SFTP:
-  "default" : 80
+  "default" : 22
   priority : throughput
 USER:
   "[abc][123][def][456]" : 

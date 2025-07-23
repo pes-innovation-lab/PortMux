@@ -1,6 +1,6 @@
 use serde_yml::Value;
 use regex::Regex;
-use std::{default, fs};
+use std::{fs};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Protocol {
