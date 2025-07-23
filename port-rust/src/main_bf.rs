@@ -14,8 +14,8 @@ use tokio::net::{TcpStream};
 pub async fn handle_connection(mut client_socket: TcpStream, protocol: Protocol, buffer: Vec<u8>) {
     let a_b_buffer: usize;
     let b_a_buffer: usize;
-    if (protocol.priority == "latency"){a_b_buffer = 1024; b_a_buffer = 1024;}
-    else if (protocol.priority == "throughput"){a_b_buffer = 32768; b_a_buffer = 32768;}
+    if protocol.priority == "latency"{a_b_buffer = 1024; b_a_buffer = 1024;}
+    else if protocol.priority == "throughput"{a_b_buffer = 32768; b_a_buffer = 32768;}
     else {a_b_buffer = 8192; b_a_buffer = 8192;}
 
 
