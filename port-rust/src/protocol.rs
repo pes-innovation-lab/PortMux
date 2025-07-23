@@ -96,16 +96,15 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
     let config: Value = serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
     let message = String::from_utf8_lossy(&buffer);
 
+
     if buffer.starts_with(b"GET ") || buffer.starts_with(b"POST ") || buffer.windows(4).any(|w| w == b"HTTP") {
         if let Some(http) = config["HTTP"].as_mapping() {
             for (key, value) in http {
                 if message.contains(key.as_str().unwrap()){
                     return Some(Protocol { name: "HTTP", port: value["port"].as_u64().unwrap() as u16, priority: value["priority"].as_str().unwrap().to_string()})
                 }
-                else{
-                    return Some(Protocol { name: "HTTP", port: http["default"]["value"].as_u64().unwrap() as u16, priority: http["default"]["priority"].as_str().unwrap().to_string()})// defaulting to prt 80 if nothing matches
-                }
             }
+            return Some(Protocol { name: "HTTP", port: http["default"]["port"].as_u64().unwrap() as u16, priority: http["default"]["priority"].as_str().unwrap().to_string()});// defaulting to prt 80 if nothing matches
         }
     }
     if buffer.len() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03 {
