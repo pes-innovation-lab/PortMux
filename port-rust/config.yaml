@@ -1,19 +1,42 @@
 HTTP: ## the keys must be strings that exist inside of the inital header message
-  "test.test" : 6969
-  "jobs.test" : 6970
-  "default" : 80
+  "test.test" : 
+    port: 6969
+    priority: latency
+  "jobs.test" : 
+    port: 6970
+    priority: throughput
+  "default" : 
+    port: 80
+    priority: latency
 HTTPS:
-  "test.test" : 3000
-  "shop.test" : 3001
-  "jobs.test" : 3002
-  "default" : 443
+  "test.test" : 
+    port: 3000
+    priority: both
+  "shop.test" : 
+    port: 3001
+    priority: both
+  "jobs.test" :
+    port: 3002
+    priority: both
+  "default" : 
+    port: 443
+    priority: both
 OPENVPN:
   "default" : 1194
+  priority : both 
 SSH:
   "default" : 22
+  priority : latency
 SFTP:
   "default" : 80
+  priority : throughput
 USER:
-  "[abc][123][def][456]" : 6969
-  "[abc][456][def]" : 8900
-  "default" : 8778
+  "[abc][123][def][456]" : 
+    port: 6969
+    priority: both 
+  "[abc][456][def]" : 
+    port: 8900
+    priority: both
+  "default" :
+    port: 48778
+    priority: both
