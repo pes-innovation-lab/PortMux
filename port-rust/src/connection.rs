@@ -7,7 +7,6 @@ pub async fn handle_connection(mut client_socket: TcpStream, protocol: Protocol,
     match TcpStream::connect(format!("127.0.0.1:{}", protocol.port)).await {
         Ok(mut service_socket) => {
             println!("Connected to service on port {}", protocol.port);
-
             if let Err(err) = service_socket.write_all(&buffer).await {
                 eprintln!("Failed to write initial buffer to service: {}", err);
                 return;

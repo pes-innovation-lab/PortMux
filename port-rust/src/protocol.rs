@@ -1,11 +1,12 @@
 use serde_yml::Value;
 use regex::Regex;
-use std::fs;
+use std::{default, fs};
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Protocol {
     pub name: &'static str,
     pub port: u16,
+    pub priority: String
 }
 
 static TLS_MAJOR: u8 = 0x03;
@@ -99,10 +100,10 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
         if let Some(http) = config["HTTP"].as_mapping() {
             for (key, value) in http {
                 if message.contains(key.as_str().unwrap()){
-                    return Some(Protocol { name: "HTTP", port: value.as_u64().unwrap() as u16})
+                    return Some(Protocol { name: "HTTP", port: value["port"].as_u64().unwrap() as u16, priority: value["priority"].as_str().unwrap().to_string()})
                 }
                 else{
-                    return Some(Protocol { name: "HTTP", port: http["default"].as_u64().unwrap() as u16})// defaulting to prt 80 if nothing matches
+                    return Some(Protocol { name: "HTTP", port: http["default"]["value"].as_u64().unwrap() as u16, priority: http["default"]["priority"].as_str().unwrap().to_string()})// defaulting to prt 80 if nothing matches
                 }
             }
         }
@@ -112,10 +113,10 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
             if let Some(https) = config["HTTPS"].as_mapping() {
                 for (key, value) in https {
                     if service.contains(key.as_str().unwrap()){
-                        return Some(Protocol { name: "HTTPS", port: value.as_u64().unwrap() as u16})
+                        return Some(Protocol { name: "HTTPS", port: value["port"].as_u64().unwrap() as u16, priority: value["priority"].as_str().unwrap().to_string()})
                     }
                     else{
-                        return Some(Protocol { name: "HTTPS", port: https["default"].as_u64().unwrap() as u16 })
+                        return Some(Protocol { name: "HTTPS", port: https["default"]["port"].as_u64().unwrap() as u16, priority: https["default"]["priority"].as_str().unwrap().to_string()})
                     }
                 }
             }
@@ -125,7 +126,7 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
         if let Some(ssh) = config["SSH"].as_mapping()
         {
             for (_,value) in ssh {
-                return Some(Protocol{ name: "SSH", port:value.as_u64().unwrap() as u16});
+                return Some(Protocol{ name: "SSH", port:value.as_u64().unwrap() as u16, priority: "latency".to_string()}); 
             }
         }
     }
@@ -136,15 +137,15 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
         if (1..=7).contains(&tcp_opcode) {
             if let Some(openvpn) = config["OPENVPN"].as_mapping() {
                 for (_, value) in openvpn {
-                    match value.as_u64() {
+                    match value["port"].as_u64() {
                         Some(port_num) => {
-                            return Some(Protocol { name: "OPENVPN", port: port_num as u16 });
+                            return Some(Protocol { name: "OPENVPN", port: port_num as u16 , priority: value["priority"].as_str().unwrap().to_string()});
                         }
                         None => break
                     }
                 }
             } else {
-                return Some(Protocol { name: "OPENVPN", port: config["OPENVPN"]["default"].as_u64().unwrap() as u16 });
+                return Some(Protocol { name: "OPENVPN", port: config["OPENVPN"]["default"]["port"].as_u64().unwrap() as u16, priority : config["OPENVPN"]["default"]["priority"].as_str().unwrap().to_string() });
             }
         }
     }
@@ -155,10 +156,10 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
             let pattern = key.as_str().unwrap();
             let re = Regex::new(&pattern).unwrap();
             if re.is_match(&message){
-                return Some(Protocol { name: "Custom", port: value.as_u64().unwrap() as u16})
+                return Some(Protocol { name: "Custom", port: value["port"].as_u64().unwrap() as u16, priority: value["priority"].as_str().unwrap().to_string()})
             }
         }
-        return Some(Protocol { name: "Custom", port: userdefined["default"].as_u64().unwrap() as u16})
+        return Some(Protocol { name: "Custom", port: userdefined["default"]["port"].as_u64().unwrap() as u16, priority : userdefined["default"]["priority"].as_str().unwrap().to_string() })
     }
     
     // if buffer.len() > 0 {
