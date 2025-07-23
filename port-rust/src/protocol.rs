@@ -1,4 +1,5 @@
 use serde_yml::Value;
+use regex::Regex;
 use std::fs;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -121,8 +122,14 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
         }
     }
     if buffer.windows(3).any(|w| w == b"SSH") {
-        return Some(Protocol { name: "SSH", port: config["SSH"]["default"].as_u64().unwrap() as u16 });
+        if let Some(ssh) = config["SSH"].as_mapping()
+        {
+            for (_,value) in ssh {
+                return Some(Protocol{ name: "SSH", port:value.as_u64().unwrap() as u16});
+            }
+        }
     }
+
     if buffer.len() > 2 {
         // TCP mode: first 2 bytes are packet length, actual data starts at buffer[2]
         let tcp_opcode = buffer[2] >> 3;
@@ -141,6 +148,19 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
             }
         }
     }
+    
+    if let Some(userdefined) = config["USER"].as_mapping() {
+        for (key, value) in userdefined {
+            println!("{:?}:{:?}",key,value);
+            let pattern = key.as_str().unwrap();
+            let re = Regex::new(&pattern).unwrap();
+            if re.is_match(&message){
+                return Some(Protocol { name: "Custom", port: value.as_u64().unwrap() as u16})
+            }
+        }
+        return Some(Protocol { name: "Custom", port: userdefined["default"].as_u64().unwrap() as u16})
+    }
+    
     // if buffer.len() > 0 {
     //     //UDP Mode: the opcode is in the first byte
     //     let opcode = buffer[0] >> 3;
