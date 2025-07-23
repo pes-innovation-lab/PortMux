@@ -92,8 +92,8 @@ pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     None
 }
 
-pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
-    let config: Value = serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
+pub fn find_protocol(buffer: &[u8], config : &Value) -> Option<Protocol> {
+    // let config: Value = serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
     let message = String::from_utf8_lossy(&buffer);
 
 

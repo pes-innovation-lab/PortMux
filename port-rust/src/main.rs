@@ -5,14 +5,19 @@ use crate::protocol::find_protocol;
 use crate::connection::handle_connection;
 use tokio::io::{AsyncReadExt};
 use tokio::net::{TcpListener};
+use serde_yml::Value;
+use std::{fs};
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
     let client_listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    let config: Arc<Value> = Arc::new(serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap());
     loop {
         match client_listener.accept().await {
             Ok((mut client_socket, addr)) => {
                 println!("New connection from: {}", addr);
+                let config = Arc::clone(&config);
 
                 tokio::spawn(async move {
                     let mut buffer = vec![0; 4096];
@@ -30,8 +35,8 @@ async fn main() {
 
                     let buffer = buffer[..n].to_vec();
                     println!("Received {} bytes", buffer.len());
-
-                    match find_protocol(&buffer) {
+                    
+                    match find_protocol(&buffer, &config) {
                         Some(protocol) => {
                             println!(
                                 "Detected protocol: {} -> port {}",
