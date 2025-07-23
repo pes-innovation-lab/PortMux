@@ -14,4 +14,6 @@ SSH:
 SFTP:
   "default" : 80
 USER:
-
+  "[abc][123][def][456]" : 6969
+  "[abc][456][def]" : 8900
+  "default" : 8778
