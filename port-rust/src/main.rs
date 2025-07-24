@@ -1,10 +1,10 @@
 mod connection;
 mod protocol;
 
-use crate::protocol::find_protocol;
 use crate::connection::handle_connection;
-use tokio::io::{AsyncReadExt};
-use tokio::net::{TcpListener};
+use crate::protocol::find_protocol;
+use tokio::io::AsyncReadExt;
+use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() {
