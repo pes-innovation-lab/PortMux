@@ -1,4 +1,3 @@
-use regex::Regex;
 use serde_yml::Value;
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
