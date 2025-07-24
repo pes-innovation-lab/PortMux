@@ -1,6 +1,5 @@
 use regex::Regex;
 use serde_yml::Value;
-use std::{default, fs};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Protocol {
@@ -92,10 +91,11 @@ pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     None
 }
 
-pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
+pub fn find_protocol(buffer: &[u8], config : &Value) -> Option<Protocol> {
     println!("{:?}", buffer);
-    let config: Value = serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
+    // let config: Value = serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
     let message = String::from_utf8_lossy(&buffer);
+
 
     if buffer.starts_with(b"GET ")
         || buffer.starts_with(b"POST ")
@@ -117,6 +117,7 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
                     }); // defaulting to prt 80 if nothing matches
                 }
             }
+            return Some(Protocol { name: "HTTP", port: http["default"]["port"].as_u64().unwrap() as u16, priority: http["default"]["priority"].as_str().unwrap().to_string()});// defaulting to prt 80 if nothing matches
         }
     }
     if buffer.len() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03 {
@@ -137,6 +138,7 @@ pub fn find_protocol(buffer: &[u8]) -> Option<Protocol> {
                         });
                     }
                 }
+                return Some(Protocol { name: "HTTPS", port: https["default"]["port"].as_u64().unwrap() as u16, priority: https["default"]["priority"].as_str().unwrap().to_string()})
             }
         }
     }
