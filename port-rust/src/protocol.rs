@@ -1,19 +1,87 @@
 use serde_yml::Value;
-use regex::Regex;
+use pyo3::prelude::*;
+use pyo3::types::PyModule;
+use std::path::Path;
+use std::ffi::CString;
+use pyo3::types::PyBytes;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Protocol {
     pub name: &'static str,
     pub port: u16,
-    pub priority: String
+    pub priority: String,
 }
 
 static TLS_MAJOR: u8 = 0x03;
 static TLS_HANDSHAKE_RECORD: u8 = 0x16;
 
+
+
+fn custom_script(buffer: &[u8]) -> Result<u32, ()> {
+    if !Path::new("script.py").exists() {
+        eprintln!("Script file not found in the current directory!");
+        return Err(());
+    }
+
+    // GIL = Global Interpreter Lock
+    Python::with_gil(|py| {
+        // Read Python script file
+        let script_content = match std::fs::read_to_string("script.py") {
+            Ok(content) => content,
+            Err(e) => {
+                eprintln!("Failed to read script: {}", e);
+                return Err(());
+            }
+        };
+
+        let filename = CString::new("script.py").unwrap();
+        let module_name = CString::new("script").unwrap();
+        let code = CString::new(script_content).unwrap();
+
+        // Compile the python script
+        let module = match PyModule::from_code(py, &code, &filename, &module_name) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Failed to compile Python script: {}", e);
+                return Err(());
+            }
+        };
+
+        // Get the function
+        let analyse_func = match module.getattr("analyse") {
+            Ok(f) => f,
+            Err(e) => {
+                eprintln!("Function 'analyse' not found: {}", e);
+                return Err(());
+            }
+        };
+
+        // Convert the u8 buffer to PyBytes
+        let py_buffer = PyBytes::new(py, buffer);
+
+        // Call analyse(buffer)
+        let result = match analyse_func.call1((py_buffer,)) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("Error calling analyse: {}", e);
+                return Err(());
+            }
+        };
+
+        // Fetch the port number from the result and return it.
+        match result.extract::<u32>() {
+            Ok(port) => Ok(port),
+            Err(e) => {
+                eprintln!("Failed to parse port number{}", e);
+                Err(())
+            }
+        }
+    })
+}
+
 pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     let mut pos = 0;
-    
+
     // Check minimum length and TLS record type
     if buffer.len() < 5 || buffer[0] != TLS_HANDSHAKE_RECORD || buffer[1] != TLS_MAJOR {
         return None;
@@ -92,15 +160,29 @@ pub fn parse_sni(buffer: &[u8]) -> Option<String> {
 }
 
 pub fn find_protocol(buffer: &[u8], config : &Value) -> Option<Protocol> {
+    println!("{:?}", buffer);
     // let config: Value = serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
     let message = String::from_utf8_lossy(&buffer);
 
 
-    if buffer.starts_with(b"GET ") || buffer.starts_with(b"POST ") || buffer.windows(4).any(|w| w == b"HTTP") {
+    if buffer.starts_with(b"GET ")
+        || buffer.starts_with(b"POST ")
+        || buffer.windows(4).any(|w| w == b"HTTP")
+    {
         if let Some(http) = config["HTTP"].as_mapping() {
             for (key, value) in http {
-                if message.contains(key.as_str().unwrap()){
-                    return Some(Protocol { name: "HTTP", port: value["port"].as_u64().unwrap() as u16, priority: value["priority"].as_str().unwrap().to_string()})
+                if message.contains(key.as_str().unwrap()) {
+                    return Some(Protocol {
+                        name: "HTTP",
+                        port: value["port"].as_u64().unwrap() as u16,
+                        priority: value["priority"].as_str().unwrap().to_string(),
+                    });
+                } else {
+                    return Some(Protocol {
+                        name: "HTTP",
+                        port: http["default"]["value"].as_u64().unwrap() as u16,
+                        priority: http["default"]["priority"].as_str().unwrap().to_string(),
+                    }); // defaulting to prt 80 if nothing matches
                 }
             }
             return Some(Protocol { name: "HTTP", port: http["default"]["port"].as_u64().unwrap() as u16, priority: http["default"]["priority"].as_str().unwrap().to_string()});// defaulting to prt 80 if nothing matches
@@ -110,8 +192,18 @@ pub fn find_protocol(buffer: &[u8], config : &Value) -> Option<Protocol> {
         if let Some(service) = parse_sni(buffer) {
             if let Some(https) = config["HTTPS"].as_mapping() {
                 for (key, value) in https {
-                    if service.contains(key.as_str().unwrap()){
-                        return Some(Protocol { name: "HTTPS", port: value["port"].as_u64().unwrap() as u16, priority: value["priority"].as_str().unwrap().to_string()})
+                    if service.contains(key.as_str().unwrap()) {
+                        return Some(Protocol {
+                            name: "HTTPS",
+                            port: value["port"].as_u64().unwrap() as u16,
+                            priority: value["priority"].as_str().unwrap().to_string(),
+                        });
+                    } else {
+                        return Some(Protocol {
+                            name: "HTTPS",
+                            port: https["default"]["port"].as_u64().unwrap() as u16,
+                            priority: https["default"]["priority"].as_str().unwrap().to_string(),
+                        });
                     }
                 }
                 return Some(Protocol { name: "HTTPS", port: https["default"]["port"].as_u64().unwrap() as u16, priority: https["default"]["priority"].as_str().unwrap().to_string()})
@@ -119,10 +211,13 @@ pub fn find_protocol(buffer: &[u8], config : &Value) -> Option<Protocol> {
         }
     }
     if buffer.windows(3).any(|w| w == b"SSH") {
-        if let Some(ssh) = config["SSH"].as_mapping()
-        {
-            for (_,value) in ssh {
-                return Some(Protocol{ name: "SSH", port:value.as_u64().unwrap() as u16, priority: "latency".to_string()}); 
+        if let Some(ssh) = config["SSH"].as_mapping() {
+            for (_, value) in ssh {
+                return Some(Protocol {
+                    name: "SSH",
+                    port: value.as_u64().unwrap() as u16,
+                    priority: "latency".to_string(),
+                });
             }
         }
     }
@@ -132,31 +227,53 @@ pub fn find_protocol(buffer: &[u8], config : &Value) -> Option<Protocol> {
         let tcp_opcode = buffer[2] >> 3;
         if (1..=7).contains(&tcp_opcode) {
             if let Some(openvpn) = config["OPENVPN"].as_mapping() {
-                for (_, value) in openvpn {
-                    match value["port"].as_u64() {
-                        Some(port_num) => {
-                            return Some(Protocol { name: "OPENVPN", port: port_num as u16 , priority: value["priority"].as_str().unwrap().to_string()});
-                        }
-                        None => break
-                    }
+                if let Some(value) = openvpn.get("tcp") {
+                    return Some(Protocol {
+                        name: "OPENVPN",
+                        port: value["port"].as_u64().unwrap() as u16,
+                        priority: value["priority"].as_str().unwrap().to_string(),
+                    });
+                } else if let Some(default) = openvpn.get("default") {
+                    return Some(Protocol {
+                        name: "OPENVPN",
+                        port: default["port"].as_u64().unwrap() as u16,
+                        priority: default["priority"].as_str().unwrap().to_string(),
+                    });
                 }
-            } else {
-                return Some(Protocol { name: "OPENVPN", port: config["OPENVPN"]["default"]["port"].as_u64().unwrap() as u16, priority : config["OPENVPN"]["default"]["priority"].as_str().unwrap().to_string() });
             }
         }
     }
-    
-    if let Some(userdefined) = config["USER"].as_mapping() {
-        for (key, value) in userdefined {
-            println!("{:?}:{:?}",key,value);
-            let pattern = key.as_str().unwrap();
-            let re = Regex::new(&pattern).unwrap();
-            if re.is_match(&message){
-                return Some(Protocol { name: "Custom", port: value["port"].as_u64().unwrap() as u16, priority: value["priority"].as_str().unwrap().to_string()})
+
+    if !buffer.is_empty() {
+        // UDP Mode: the opcode is in the first byte
+        let opcode = buffer[0] >> 3;
+        if (1..=7).contains(&opcode) {
+            if let Some(openvpn) = config["OPENVPN"].as_mapping() {
+                if let Some(value) = openvpn.get("udp") {
+                    return Some(Protocol {
+                        name: "OPENVPN",
+                        port: value["port"].as_u64().unwrap() as u16,
+                        priority: value["priority"].as_str().unwrap().to_string(),
+                    });
+                } else if let Some(default) = openvpn.get("default") {
+                    return Some(Protocol {
+                        name: "OPENVPN",
+                        port: default["port"].as_u64().unwrap() as u16,
+                        priority: default["priority"].as_str().unwrap().to_string(),
+                    });
+                }
             }
         }
-        return Some(Protocol { name: "Custom", port: userdefined["default"]["port"].as_u64().unwrap() as u16, priority : userdefined["default"]["priority"].as_str().unwrap().to_string() })
     }
+
+    //Check for custom script
+    if let Ok(port) = custom_script(buffer) {
+    return Some(Protocol {
+        name: "Custom",
+        port: port as u16,
+        priority: "auto".to_string(),
+    });
+}
     
     // if buffer.len() > 0 {
     //     //UDP Mode: the opcode is in the first byte
