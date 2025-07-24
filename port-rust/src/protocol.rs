@@ -1,5 +1,9 @@
-use regex::Regex;
 use serde_yml::Value;
+use pyo3::prelude::*;
+use pyo3::types::PyModule;
+use std::path::Path;
+use std::ffi::CString;
+use pyo3::types::PyBytes;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Protocol {
@@ -10,6 +14,70 @@ pub struct Protocol {
 
 static TLS_MAJOR: u8 = 0x03;
 static TLS_HANDSHAKE_RECORD: u8 = 0x16;
+
+
+
+fn custom_script(buffer: &[u8]) -> Result<u32, ()> {
+    if !Path::new("script.py").exists() {
+        eprintln!("Script file not found in the current directory!");
+        return Err(());
+    }
+
+    // GIL = Global Interpreter Lock
+    Python::with_gil(|py| {
+        // Read Python script file
+        let script_content = match std::fs::read_to_string("script.py") {
+            Ok(content) => content,
+            Err(e) => {
+                eprintln!("Failed to read script: {}", e);
+                return Err(());
+            }
+        };
+
+        let filename = CString::new("script.py").unwrap();
+        let module_name = CString::new("script").unwrap();
+        let code = CString::new(script_content).unwrap();
+
+        // Compile the python script
+        let module = match PyModule::from_code(py, &code, &filename, &module_name) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Failed to compile Python script: {}", e);
+                return Err(());
+            }
+        };
+
+        // Get the function
+        let analyse_func = match module.getattr("analyse") {
+            Ok(f) => f,
+            Err(e) => {
+                eprintln!("Function 'analyse' not found: {}", e);
+                return Err(());
+            }
+        };
+
+        // Convert the u8 buffer to PyBytes
+        let py_buffer = PyBytes::new(py, buffer);
+
+        // Call analyse(buffer)
+        let result = match analyse_func.call1((py_buffer,)) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("Error calling analyse: {}", e);
+                return Err(());
+            }
+        };
+
+        // Fetch the port number from the result and return it.
+        match result.extract::<u32>() {
+            Ok(port) => Ok(port),
+            Err(e) => {
+                eprintln!("Failed to parse port number{}", e);
+                Err(())
+            }
+        }
+    })
+}
 
 pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     let mut pos = 0;
@@ -185,27 +253,33 @@ pub fn find_protocol(buffer: &[u8], config : &Value) -> Option<Protocol> {
         }
     }
 
-    if let Some(userdefined) = config["USER"].as_mapping() {
-        for (key, value) in userdefined {
-            println!("{:?}:{:?}", key, value);
-            let pattern = key.as_str().unwrap();
-            let re = Regex::new(&pattern).unwrap();
-            if re.is_match(&message) {
-                return Some(Protocol {
-                    name: "Custom",
-                    port: value["port"].as_u64().unwrap() as u16,
-                    priority: value["priority"].as_str().unwrap().to_string(),
-                });
-            }
-        }
-        return Some(Protocol {
-            name: "Custom",
-            port: userdefined["default"]["port"].as_u64().unwrap() as u16,
-            priority: userdefined["default"]["priority"]
-                .as_str()
-                .unwrap()
-                .to_string(),
-        });
-    }
+    //Check for custom script
+    if let Ok(port) = custom_script(buffer) {
+    return Some(Protocol {
+        name: "Custom",
+        port: port as u16,
+        priority: "auto".to_string(),
+    });
+}
+    
+    // if buffer.len() > 0 {
+    //     //UDP Mode: the opcode is in the first byte
+    //     let opcode = buffer[0] >> 3;
+    //     if matches!(opcode, 0x01..=0x07) {
+    //         if let Some(openvpn) = config["openvpn"].as_mapping() {
+    //             for (_, value) in openvpn {
+    //                 match value.as_u64() {
+    //                     Some(port_num) => {
+    //                         return Some(Protocol { name: "OPENVPN", port: port_num as u16});
+    //                     }
+
+    //                     None => return Some(Protocol { name: "OPENVPN", port: 1194 })
+    //                 }
+    //             }
+    //         } else {
+    //             return Some(Protocol { name: "OPENVPN", port: 1194 });
+    //         }
+    //     }
+    // }
     None
 }

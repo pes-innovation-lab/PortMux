@@ -39,13 +39,3 @@ SSH:
 SFTP:
   "default" : 22
   priority : throughput
-USER:
-  "[abc][123][def][456]" : 
-    port: 6969
-    priority: both 
-  "[abc][456][def]" : 
-    port: 8900
-    priority: both
-  "default" :
-    port: 48778
-    priority: both
