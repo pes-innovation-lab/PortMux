@@ -1,3 +1,6 @@
+PORTMUX:
+  ip: 0.0.0.0
+  port: 8080
 HTTP: ## the keys must be strings that exist inside of the inital header message
   "127.0.0.1" : 
     port: 6970
