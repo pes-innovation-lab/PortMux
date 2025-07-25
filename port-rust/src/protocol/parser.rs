@@ -1,7 +1,14 @@
-use crate::protocol::types::Protocol;
 use crate::protocol::sni::parse_sni;
 use crate::protocol::custom_script::custom_script;
 use serde_yml::Value;
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct Protocol {
+    pub name: &'static str,
+    pub port: u16,
+    pub priority: String,
+}
+
 
 pub fn find_protocol(buffer: &[u8], config: &Value) -> Option<Protocol> {
     let msg = String::from_utf8_lossy(buffer);

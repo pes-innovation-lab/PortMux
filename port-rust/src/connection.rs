@@ -1,4 +1,4 @@
-use crate::protocol::types::Protocol;
+use crate::protocol::Protocol;
 use tokio::io::{AsyncWriteExt, copy_bidirectional_with_sizes};
 use tokio::net::TcpStream;
 
