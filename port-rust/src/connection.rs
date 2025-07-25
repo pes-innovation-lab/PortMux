@@ -1,5 +1,5 @@
 use crate::protocol::types::Protocol;
-use tokio::io::{AsyncWriteExt, copy_bidirectional};
+use tokio::io::{AsyncWriteExt, copy_bidirectional_with_sizes};
 use tokio::net::TcpStream;
 
 pub async fn handle_connection(mut client_socket: TcpStream, protocol: Protocol, buffer: Vec<u8>) {
@@ -16,7 +16,7 @@ pub async fn handle_connection(mut client_socket: TcpStream, protocol: Protocol,
                 return;
             }
 
-            match copy_bidirectional(&mut client_socket, &mut service_socket).await {
+            match copy_bidirectional_with_sizes(&mut client_socket, &mut service_socket, a_b_buffer, b_a_buffer).await {
                 Ok(_) => println!("Client disconnected."),
                 Err(err) => eprintln!("Data copy error: {}", err),
             }
