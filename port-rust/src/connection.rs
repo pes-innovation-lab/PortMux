@@ -3,6 +3,7 @@ use crate::protocol::Protocol;
 use tokio::io::{AsyncWriteExt, copy_bidirectional_with_sizes};
 use tokio::net::TcpStream;
 
+//give user the ability to pick where to bind
 
 pub async fn handle_connection(mut client_socket: TcpStream, protocol: Protocol, buffer: Vec<u8>) {
     let a_b_buffer: usize;

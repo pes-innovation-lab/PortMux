@@ -15,10 +15,10 @@ pub struct Protocol {
 static TLS_MAJOR: u8 = 0x03;
 static TLS_HANDSHAKE_RECORD: u8 = 0x16;
 
-
+//all file reading related functions should be in a util file
 
 fn custom_script(buffer: &[u8]) -> Result<u32, ()> {
-    if !Path::new("script.py").exists() {
+    if !Path::new("script.py").exists() { //path is hardcoded
         eprintln!("Script file not found in the current directory!");
         return Err(());
     }
@@ -26,7 +26,7 @@ fn custom_script(buffer: &[u8]) -> Result<u32, ()> {
     // GIL = Global Interpreter Lock
     Python::with_gil(|py| {
         // Read Python script file
-        let script_content = match std::fs::read_to_string("script.py") {
+        let script_content = match std::fs::read_to_string("script.py") { //path is hardcoded
             Ok(content) => content,
             Err(e) => {
                 eprintln!("Failed to read script: {}", e);
@@ -34,8 +34,8 @@ fn custom_script(buffer: &[u8]) -> Result<u32, ()> {
             }
         };
 
-        let filename = CString::new("script.py").unwrap();
-        let module_name = CString::new("script").unwrap();
+        let filename = CString::new("script.py").unwrap();  //hardcoded
+        let module_name = CString::new("script").unwrap();  //hardcoded
         let code = CString::new(script_content).unwrap();
 
         // Compile the python script
@@ -83,17 +83,18 @@ pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     let mut pos = 0;
 
     // Check minimum length and TLS record type
+    //magic numbers bad
     if buffer.len() < 5 || buffer[0] != TLS_HANDSHAKE_RECORD || buffer[1] != TLS_MAJOR {
         return None;
     }
-    pos += 5; // Skip record header
+    pos += 5; // Skip record header //why +5? avoid magic numbers
 
     // Check handshake type
-    if pos + 1 >= buffer.len() || buffer[pos] != 0x01 {
+    if pos + 1 >= buffer.len() || buffer[pos] != 0x01 { //all these must be defined as macros or consts
         return None;
     }
 
-    pos += 4; // Handshake type + length
+    pos += 4; // Handshake type + length instead of comments and stuff, please use consts describing exactly what is going on
     pos += 2; // Version
     pos += 32; // Random
 
@@ -132,6 +133,7 @@ pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     let end = pos + extensions_len;
 
     // Parse extensions
+    //TOO many magic numbers guys
     while pos + 4 <= end && pos + 4 <= buffer.len() {
         let ext_type = u16::from_be_bytes([buffer[pos], buffer[pos + 1]]);
         let ext_len = u16::from_be_bytes([buffer[pos + 2], buffer[pos + 3]]) as usize;
@@ -159,6 +161,8 @@ pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     None
 }
 
+//all these functions should be in utils.
+
 pub fn find_protocol(buffer: &[u8], config : &Value) -> Option<Protocol> {
     // let config: Value = serde_yml::from_str(&fs::read_to_string("config.yaml").unwrap()).unwrap();
     let message = String::from_utf8_lossy(&buffer);
@@ -181,6 +185,8 @@ pub fn find_protocol(buffer: &[u8], config : &Value) -> Option<Protocol> {
             return Some(Protocol { name: "HTTP", port: http["default"]["port"].as_u64().unwrap() as u16, priority: http["default"]["priority"].as_str().unwrap().to_string()});// defaulting to prt 80 if nothing matches
         }
     }
+    //magic number bad
+    //use switch for these
     if buffer.len() >= 3 && buffer[0] == 0x16 && buffer[1] == 0x03 && buffer[2] <= 0x03 {
         if let Some(service) = parse_sni(buffer) {
             if let Some(https) = config["HTTPS"].as_mapping() {
