@@ -261,31 +261,11 @@ pub fn find_protocol(buffer: &[u8], config : &Value) -> Option<Protocol> {
 
     //Check for custom script
     if let Ok(port) = custom_script(buffer) {
-    return Some(Protocol {
-        name: "Custom",
-        port: port as u16,
-        priority: "auto".to_string(),
-    });
-}
-    
-    // if buffer.len() > 0 {
-    //     //UDP Mode: the opcode is in the first byte
-    //     let opcode = buffer[0] >> 3;
-    //     if matches!(opcode, 0x01..=0x07) {
-    //         if let Some(openvpn) = config["openvpn"].as_mapping() {
-    //             for (_, value) in openvpn {
-    //                 match value.as_u64() {
-    //                     Some(port_num) => {
-    //                         return Some(Protocol { name: "OPENVPN", port: port_num as u16});
-    //                     }
-
-    //                     None => return Some(Protocol { name: "OPENVPN", port: 1194 })
-    //                 }
-    //             }
-    //         } else {
-    //             return Some(Protocol { name: "OPENVPN", port: 1194 });
-    //         }
-    //     }
-    // }
+        return Some(Protocol {
+            name: "Custom",
+            port: port as u16,
+            priority: "auto".to_string(),
+        });
+    }
     None
 }
