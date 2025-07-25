@@ -1,5 +1,5 @@
 HTTP: ## the keys must be strings that exist inside of the inital header message
-  "test.test" : 
+  "127.0.0.1" : 
     port: 6970
     priority: latency
   "jobs.test" : 
@@ -9,7 +9,7 @@ HTTP: ## the keys must be strings that exist inside of the inital header message
     port: 3001
     priority: throughput
   "default" : 
-    port: 80
+    port: 6970
     priority: latency
 HTTPS:
   "test.test" : 
