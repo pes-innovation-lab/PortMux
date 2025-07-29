@@ -21,6 +21,14 @@ install: all
 	# Install systemd service
 	sudo install -Dm644 $(SERVICE_NAME) $(SERVICE_INSTALL_PATH)/$(SERVICE_NAME)
 
+	# Creating portmux user 
+	@if ! id -u $(SERVICE_USER) >/dev/null 2>&1; then \
+		echo "Creating portmux user..."; \
+		sudo useradd --system --no-create-home --shell /usr/sbin/nologin --comment "PORTMUX Daemon" $(SERVICE_USER); \
+	else \
+		echo "portmux user already exists."; \
+	fi
+
 	# Create config/data dir with secure ownership/permissions
 	sudo mkdir -p $(CONFIG_DIR)
 	sudo chown -R root:$(SERVICE_USER) $(CONFIG_DIR)
