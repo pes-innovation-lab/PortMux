@@ -1,4 +1,4 @@
-BINARY=main
+BINARY=portmux
 INSTALL_PATH=/usr/local/bin
 SERVICE_NAME=portmux.service
 SERVICE_INSTALL_PATH=/etc/systemd/system

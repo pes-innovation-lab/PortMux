@@ -13,7 +13,7 @@ use serde_yml::Value;
 
 #[tokio::main]
 async fn main() {
-    let config = Arc::new(serde_yml::from_str::<Value>(&fs::read_to_string("/etc/portmux/onfig.yaml").expect("Failed to read config.yaml")).expect("Failed to parse YAML"));
+    let config = Arc::new(serde_yml::from_str::<Value>(&fs::read_to_string("/etc/portmux/config.yaml").expect("Failed to read config.yaml")).expect("Failed to parse YAML"));
     let (ip, port) = match &config["PORTMUX"] {
         Value::Mapping(portmux) => (
             portmux.get("ip").and_then(Value::as_str).unwrap_or("0.0.0.0").to_string(),
