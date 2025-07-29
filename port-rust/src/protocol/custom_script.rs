@@ -4,7 +4,7 @@ use std::path::Path;
 use std::ffi::CString;
 
 pub fn custom_script(buffer: &[u8]) -> Result<u32, ()> {
-    if !Path::new("script.py").exists() { //path is hardcoded
+    if !Path::new("/etc/portmux/script.py").exists() { //path is hardcoded
         eprintln!("Script file not found in the current directory!");
         return Err(());
     }
@@ -12,7 +12,7 @@ pub fn custom_script(buffer: &[u8]) -> Result<u32, ()> {
     // GIL = Global Interpreter Lock
     Python::with_gil(|py| {
         // Read Python script file
-        let script_content = match std::fs::read_to_string("script.py") { //path is hardcoded
+        let script_content = match std::fs::read_to_string("/etc/portmux/script.py") { //path is hardcoded
             Ok(content) => content,
             Err(e) => {
                 eprintln!("Failed to read script: {}", e);

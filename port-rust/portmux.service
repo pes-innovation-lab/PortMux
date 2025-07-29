@@ -1,0 +1,20 @@
+# /etc/systemd/system/portmux.service
+
+[Unit]
+Description=PORTMUX Daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/portmux
+User=portmux
+Group=portmux
+WorkingDirectory=/
+Restart=on-failure
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=full
+ReadOnlyPaths=/etc/portmux
+
+[Install]
+WantedBy=multi-user.target

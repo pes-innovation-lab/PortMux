@@ -11,5 +11,5 @@ serde_yml = "0.0.12"
 regex = "1.3.9"
 
 [[bin]]
-name = "main"
+name = "portmux"
 path = "src/main.rs"
