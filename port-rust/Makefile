@@ -29,14 +29,15 @@ install: all
 		echo "portmux user already exists."; \
 	fi
 
-	# Create config/data dir with secure ownership/permissions
+	# Create config dir and secure permissions
 	sudo mkdir -p $(CONFIG_DIR)
-	sudo chown -R root:$(SERVICE_USER) $(CONFIG_DIR)
-	sudo chmod -R 750 $(CONFIG_DIR)
+	sudo chown root:$(SERVICE_USER) $(CONFIG_DIR)
+	sudo chmod 755 $(CONFIG_DIR)
 
-	# Install config files
-	sudo install -Dm644 $(YAML_CONFIG) $(CONFIG_DIR)/$(YAML_CONFIG)
-	sudo install -Dm644 $(PYTHON_SCRIPT) $(CONFIG_DIR)/$(PYTHON_SCRIPT)
+	# Install config files as world-readable
+	sudo install -m644 $(YAML_CONFIG) $(CONFIG_DIR)/$(YAML_CONFIG)
+	sudo install -m644 $(PYTHON_SCRIPT) $(CONFIG_DIR)/$(PYTHON_SCRIPT)
+
 
 	# Reload systemd and start service
 	sudo systemctl daemon-reexec
