@@ -1,66 +1,48 @@
+use anyhow::{Context, Result};
 use pyo3::prelude::*;
-use pyo3::types::{PyModule, PyBytes};
-use std::path::Path;
+use pyo3::types::{PyBytes, PyModule};
 use std::ffi::CString;
+use std::path::Path;
 
-pub fn custom_script(buffer: &[u8]) -> Result<u32, ()> {
-    if !Path::new("script.py").exists() { //path is hardcoded
-        eprintln!("Script file not found in the current directory!");
-        return Err(());
+pub fn custom_script(buffer: &[u8]) -> Result<u32> {
+    if !Path::new("script.py").exists() {
+        anyhow::bail!("Script file 'script.py' not found in the current directory!");
     }
 
-    // GIL = Global Interpreter Lock
     Python::with_gil(|py| {
         // Read Python script file
-        let script_content = match std::fs::read_to_string("script.py") { //path is hardcoded
-            Ok(content) => content,
-            Err(e) => {
-                eprintln!("Failed to read script: {}", e);
-                return Err(());
-            }
-        };
+        let script_content =
+            std::fs::read_to_string("script.py").context("Failed to read script.py")?;
 
-        let filename = CString::new("script.py").unwrap();  //hardcoded
-        let module_name = CString::new("script").unwrap();  //hardcoded
-        let code = CString::new(script_content).unwrap();
+        let filename = CString::new("script.py")
+            .map_err(|e| anyhow::anyhow!("Failed to create CString for filename: {}", e))?;
+        let module_name = CString::new("script")
+            .map_err(|e| anyhow::anyhow!("Failed to create CString for module name: {}", e))?;
+        let script = CString::new(script_content)
+            .map_err(|e| anyhow::anyhow!("Failed to create CString for script content: {}", e))?;
 
         // Compile the python script
-        let module = match PyModule::from_code(py, &code, &filename, &module_name) {
-            Ok(m) => m,
-            Err(e) => {
-                eprintln!("Failed to compile Python script: {}", e);
-                return Err(());
-            }
-        };
+        let module = PyModule::from_code(py, &script, &filename, &module_name)
+            .context("Failed to compile Python script")?;
 
         // Get the function
-        let analyse_func = match module.getattr("analyse") {
-            Ok(f) => f,
-            Err(e) => {
-                eprintln!("Function 'analyse' not found: {}", e);
-                return Err(());
-            }
-        };
+        let analyse_func = module
+            .getattr("analyse")
+            .context("Function 'analyse' not found in script")?;
 
         // Convert the u8 buffer to PyBytes
         let py_buffer = PyBytes::new(py, buffer);
 
         // Call analyse(buffer)
-        let result = match analyse_func.call1((py_buffer,)) {
-            Ok(r) => r,
-            Err(e) => {
-                eprintln!("Error calling analyse: {}", e);
-                return Err(());
-            }
-        };
+        let result = analyse_func
+            .call1((py_buffer,))
+            .context("Error calling 'analyse' function")?;
 
         // Fetch the port number from the result and return it.
-        match result.extract::<u32>() {
-            Ok(port) => Ok(port),
-            Err(e) => {
-                eprintln!("Failed to parse port number{}", e);
-                Err(())
-            }
-        }
+        let port: u32 = result
+            .extract()
+            .context("Failed to extract port number from Python result")?;
+
+        Ok(port)
     })
 }

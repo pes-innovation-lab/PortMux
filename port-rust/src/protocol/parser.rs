@@ -1,5 +1,5 @@
-use crate::protocol::sni::parse_sni;
 use crate::protocol::custom_script::custom_script;
+use crate::protocol::sni::parse_sni;
 use serde_yml::Value;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -9,12 +9,14 @@ pub struct Protocol {
     pub priority: String,
 }
 
-
 pub fn find_protocol(buffer: &[u8], config: &Value) -> Option<Protocol> {
     let msg = String::from_utf8_lossy(buffer);
 
     // HTTP
-    if buffer.starts_with(b"GET ") || buffer.starts_with(b"POST ") || buffer.windows(4).any(|w| w == b"HTTP") {
+    if buffer.starts_with(b"GET ")
+        || buffer.starts_with(b"POST ")
+        || buffer.windows(4).any(|w| w == b"HTTP")
+    {
         if let Some(http) = config.get("HTTP")?.as_mapping() {
             for (key, val) in http {
                 if msg.contains(key.as_str().unwrap()) {

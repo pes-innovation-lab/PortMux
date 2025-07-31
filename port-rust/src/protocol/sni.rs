@@ -3,7 +3,7 @@ static TLS_HANDSHAKE_RECORD: u8 = 0x16;
 static TLS_RECORD_HEADER_SIZE: usize = 5;
 static TLS_HANDSHAKE_TYPE_CLIENT_HELLO: u8 = 0x01;
 static TLS_HANDSHAKE_TYPE_SIZE: usize = 1;
-static TLS_HANDSHAKE_MESSAGE_LENGTH : usize = 3;
+static TLS_HANDSHAKE_MESSAGE_LENGTH: usize = 3;
 static TLS_VERSION_SIZE: usize = 2;
 static RANDOM_DATA_SIZE: usize = 32;
 static SESSION_ID_LENGTH_SIZE: usize = 1;
@@ -33,15 +33,18 @@ pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     let buffer_length = buffer.len();
 
     // Check minimum length and TLS record type
-    if buffer_length < TLS_RECORD_HEADER_SIZE 
-        || buffer[TLS_RECORD_TYPE_OFFSET] != TLS_HANDSHAKE_RECORD 
-        || buffer[TLS_VERSION_OFFSET] != TLS_MAJOR {
+    if buffer_length < TLS_RECORD_HEADER_SIZE
+        || buffer[TLS_RECORD_TYPE_OFFSET] != TLS_HANDSHAKE_RECORD
+        || buffer[TLS_VERSION_OFFSET] != TLS_MAJOR
+    {
         return None;
     }
     pos += TLS_RECORD_HEADER_SIZE; // Skip record header
 
     // Check handshake type
-    if pos + TLS_HANDSHAKE_TYPE_SIZE > buffer_length || buffer[pos] != TLS_HANDSHAKE_TYPE_CLIENT_HELLO {
+    if pos + TLS_HANDSHAKE_TYPE_SIZE > buffer_length
+        || buffer[pos] != TLS_HANDSHAKE_TYPE_CLIENT_HELLO
+    {
         return None;
     }
 
@@ -64,8 +67,8 @@ pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     }
 
     let cipher_suites_len = u16::from_be_bytes([
-        buffer[pos + U16_BYTE_0_OFFSET], 
-        buffer[pos + U16_BYTE_1_OFFSET]
+        buffer[pos + U16_BYTE_0_OFFSET],
+        buffer[pos + U16_BYTE_1_OFFSET],
     ]) as usize;
     pos += CIPHER_SUITES_LENGTH_SIZE + cipher_suites_len;
 
@@ -83,8 +86,8 @@ pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     }
 
     let extensions_len = u16::from_be_bytes([
-        buffer[pos + U16_BYTE_0_OFFSET], 
-        buffer[pos + U16_BYTE_1_OFFSET]
+        buffer[pos + U16_BYTE_0_OFFSET],
+        buffer[pos + U16_BYTE_1_OFFSET],
     ]) as usize;
     pos += EXTENSIONS_FIELD_SIZE;
 
@@ -93,28 +96,28 @@ pub fn parse_sni(buffer: &[u8]) -> Option<String> {
     // Parse extensions
     while pos + EXTENSIONS_TOTAL_SIZE <= end && pos + EXTENSIONS_TOTAL_SIZE <= buffer_length {
         let ext_type = u16::from_be_bytes([
-            buffer[pos + EXT_TYPE_BYTE_0_OFFSET], 
-            buffer[pos + EXT_TYPE_BYTE_1_OFFSET]
+            buffer[pos + EXT_TYPE_BYTE_0_OFFSET],
+            buffer[pos + EXT_TYPE_BYTE_1_OFFSET],
         ]);
         let ext_len = u16::from_be_bytes([
-            buffer[pos + EXT_LEN_BYTE_0_OFFSET], 
-            buffer[pos + EXT_LEN_BYTE_1_OFFSET]
+            buffer[pos + EXT_LEN_BYTE_0_OFFSET],
+            buffer[pos + EXT_LEN_BYTE_1_OFFSET],
         ]) as usize;
         pos += EXTENSIONS_TOTAL_SIZE;
 
         // SNI extension (type 0x00)
         if ext_type == SNI_EXTENSION && pos + SNI_LIST_LENGTH_SIZE <= buffer_length {
             let sni_list_len = u16::from_be_bytes([
-                buffer[pos + U16_BYTE_0_OFFSET], 
-                buffer[pos + U16_BYTE_1_OFFSET]
+                buffer[pos + U16_BYTE_0_OFFSET],
+                buffer[pos + U16_BYTE_1_OFFSET],
             ]) as usize;
             pos += SNI_EXTENSION_SIZE;
 
             if pos + sni_list_len <= buffer_length && pos + SNI_NAME_ENTRY_SIZE <= buffer_length {
                 let name_type = buffer[pos + SNI_NAME_TYPE_OFFSET];
                 let name_len = u16::from_be_bytes([
-                    buffer[pos + SNI_NAME_LEN_BYTE_0_OFFSET], 
-                    buffer[pos + SNI_NAME_LEN_BYTE_1_OFFSET]
+                    buffer[pos + SNI_NAME_LEN_BYTE_0_OFFSET],
+                    buffer[pos + SNI_NAME_LEN_BYTE_1_OFFSET],
                 ]) as usize;
                 pos += SNI_NAME_ENTRY_SIZE;
 
