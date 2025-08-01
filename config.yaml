@@ -39,6 +39,3 @@ OPENVPN:
     priority : both
 SSH:
   "default" : 22
-SFTP:
-  "default" : 22
-  priority : throughput
